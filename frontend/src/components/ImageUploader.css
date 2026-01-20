@@ -1,0 +1,206 @@
+.image-uploader {
+    background: var(--card-bg);
+    border-radius: 15px;
+    padding: 25px;
+    margin: 20px 0;
+    border: 1px solid var(--border-color);
+  }
+  
+  .upload-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .upload-section:last-child {
+    border-bottom: none;
+  }
+  
+  .upload-section h4 {
+    color: white;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+  }
+  
+  .upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 25px;
+    background: var(--gradient-accent);
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+  }
+  
+  .upload-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+  }
+  
+  .upload-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .upload-hint {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    margin-top: 10px;
+  }
+  
+  .upload-progress {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--gradient-accent);
+    opacity: 0.2;
+    transition: width 0.3s;
+  }
+  
+  .upload-progress span {
+    position: relative;
+    z-index: 1;
+    color: white;
+  }
+  
+  .message {
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: fadeIn 0.3s;
+  }
+  
+  .message.success {
+    background: rgba(46, 204, 113, 0.2);
+    border: 1px solid #2ecc71;
+    color: #2ecc71;
+  }
+  
+  .message.error {
+    background: rgba(231, 76, 60, 0.2);
+    border: 1px solid #e74c3c;
+    color: #e74c3c;
+  }
+  
+  .close-btn {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 1.5em;
+    padding: 0 5px;
+  }
+  
+  .images-list h4 {
+    color: white;
+    margin-bottom: 20px;
+  }
+  
+  .images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+  
+  .image-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform 0.3s;
+  }
+  
+  .image-item:hover {
+    transform: translateY(-5px);
+  }
+  
+  .image-item img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    display: block;
+  }
+  
+  .image-actions {
+    padding: 15px;
+  }
+  
+  .image-name {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.8em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 10px;
+  }
+  
+  .main-badge {
+    background: var(--gradient-accent);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: bold;
+    display: inline-block;
+    margin-bottom: 10px;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .btn-set-main, .btn-delete {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.3s;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+  
+  .btn-set-main {
+    background: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+    border: 1px solid #3498db;
+  }
+  
+  .btn-set-main:hover {
+    background: rgba(52, 152, 219, 0.3);
+  }
+  
+  .btn-delete {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    border: 1px solid #e74c3c;
+  }
+  
+  .btn-delete:hover {
+    background: rgba(231, 76, 60, 0.3);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }

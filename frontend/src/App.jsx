@@ -736,4 +736,13 @@ function App() {
   );
 }
 
+<div className="admin-links">
+  <a href="/admin/cars" className="nav-link">
+    <i className="fas fa-cog"></i> Управление авто
+  </a>
+  <a href="/admin/upload" className="nav-link">
+    <i className="fas fa-upload"></i> Загрузка фото
+  </a>
+</div>
+
 export default App;

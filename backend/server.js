@@ -3,6 +3,7 @@ import cors from 'cors';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,9 +13,66 @@ const PORT = 3001;
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Настройка multer для загрузки файлов
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const carId = req.params.id || 'temp';
+    const uploadPath = path.join(__dirname, 'uploads', 'cars', carId);
+    
+    fs.mkdir(uploadPath, { recursive: true }).then(() => {
+      cb(null, uploadPath);
+    }).catch(err => {
+      cb(err, uploadPath);
+    });
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Только изображения (jpeg, jpg, png, gif, webp)'));
+    }
+  }
+});
 
 // Путь к файлу базы данных
 const dbPath = path.join(__dirname, 'db.json');
+
+// Чтение базы данных
+async function readDB() {
+  try {
+    const data = await fs.readFile(dbPath, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    const initialDB = {
+      cars: [],
+      users: [],
+      favorites: []
+    };
+    await writeDB(initialDB);
+    return initialDB;
+  }
+}
+
+// Запись в базу данных
+async function writeDB(data) {
+  await fs.writeFile(dbPath, JSON.stringify(data, null, 2));
+}
 
 // Функция для безопасной загрузки фото
 const safeImageUrl = (url, fallback = 'https://images.unsplash.com/photo-1599912027806-cfec9f5944b6?w=800&auto=format&fit=crop') => {
@@ -49,45 +107,14 @@ const getGalleryImages = (carId) => {
   return galleries[carId % galleries.length];
 };
 
-// Чтение базы данных
-async function readDB() {
-  try {
-    const data = await fs.readFile(dbPath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    // Если файла нет, создаем новую базу
-    const initialDB = {
-      cars: [],
-      users: [],
-      favorites: []
-    };
-    await writeDB(initialDB);
-    return initialDB;
-  }
-}
-
-// Запись в базу данных
-async function writeDB(data) {
-  await fs.writeFile(dbPath, JSON.stringify(data, null, 2));
-}
-
 // API маршруты
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
     database: 'JSON file',
-    version: '2.0.0',
-    carsCount: 15
-  });
-});
-
-// Тест изображений
-app.get('/api/test-images', (req, res) => {
-  res.json({
-    message: 'Тестовые изображения',
-    images: getGalleryImages(0),
-    status: 'OK'
+    version: '3.0.0',
+    features: ['upload-images', 'gallery', 'admin']
   });
 });
 
@@ -99,7 +126,6 @@ app.get('/api/cars', async (req, res) => {
     
     let cars = [...db.cars];
     
-    // Фильтрация
     if (search) {
       cars = cars.filter(car => 
         car.title.toLowerCase().includes(search.toLowerCase())
@@ -118,7 +144,6 @@ app.get('/api/cars', async (req, res) => {
       cars = cars.filter(car => car.service === service);
     }
     
-    // Сортировка
     if (sortBy === 'price_asc') {
       cars.sort((a, b) => a.price - b.price);
     } else if (sortBy === 'price_desc') {
@@ -133,10 +158,9 @@ app.get('/api/cars', async (req, res) => {
       });
     }
     
-    // Добавляем безопасные изображения
     const carsWithSafeImages = cars.map(car => ({
       ...car,
-      image: safeImageUrl(car.image)
+      image: car.image ? `http://localhost:${PORT}${car.image}` : safeImageUrl(null)
     }));
     
     res.json(carsWithSafeImages);
@@ -157,7 +181,6 @@ app.get('/api/cars/:id', async (req, res) => {
       return res.status(404).json({ error: 'Автомобиль не найден' });
     }
     
-    // Определяем тип топлива
     const getFuelType = (engine) => {
       if (engine.includes('Hybrid') || engine.includes('PHEV')) return 'Гибрид';
       if (engine.includes('Diesel')) return 'Дизель';
@@ -165,20 +188,17 @@ app.get('/api/cars/:id', async (req, res) => {
       return 'Бензин';
     };
     
-    // Определяем тип привода
     const getDriveType = (features) => {
       if (features?.some(f => f.includes('Полный'))) return 'Полный привод';
       return 'Передний привод';
     };
     
-    // Определяем тип КПП
     const getTransmission = (features) => {
       if (features?.some(f => f.includes('Автомат') || f.includes('Вариатор'))) return 'Автоматическая';
       if (features?.some(f => f.includes('Механическая'))) return 'Механическая';
       return 'Автоматическая';
     };
     
-    // Технические характеристики
     const technicalSpecs = {
       fuelType: getFuelType(car.engine),
       transmission: getTransmission(car.features),
@@ -191,7 +211,6 @@ app.get('/api/cars/:id', async (req, res) => {
                 car.title.includes('MX-5') ? 'Кабриолет' : 'Седан'
     };
     
-    // Отчет осмотра
     const inspectionReport = {
       exterior: { 
         rating: (car.auctionGrade - 0.2).toFixed(1), 
@@ -211,7 +230,6 @@ app.get('/api/cars/:id', async (req, res) => {
       }
     };
     
-    // История аукциона
     const auctionHistory = [
       { date: car.auctionDate, price: car.price * 0.95, status: 'Начальная ставка' },
       { date: new Date(new Date(car.auctionDate).getTime() + 86400000).toISOString().split('T')[0], 
@@ -219,11 +237,13 @@ app.get('/api/cars/:id', async (req, res) => {
         status: 'Текущая ставка' }
     ];
     
-    // Добавляем галерею фото и детали
     const carWithDetails = {
       ...car,
-      image: safeImageUrl(car.image),
-      images: [safeImageUrl(car.image), ...getGalleryImages(carId)],
+      image: car.image ? `http://localhost:${PORT}${car.image}` : safeImageUrl(null),
+      images: car.image ? 
+        [`http://localhost:${PORT}${car.image}`, ...getGalleryImages(carId)] : 
+        getGalleryImages(carId),
+      gallery: (car.gallery || []).map(img => `http://localhost:${PORT}${img}`),
       technicalSpecs,
       inspectionReport,
       auctionHistory,
@@ -241,61 +261,203 @@ app.get('/api/cars/:id', async (req, res) => {
   }
 });
 
-// Поиск по маркам
-app.get('/api/brands', async (req, res) => {
+// ========== API ДЛЯ ЗАГРУЗКИ ФОТО ==========
+
+// Загрузка основной фотографии
+app.post('/api/cars/:id/upload-main', upload.single('image'), async (req, res) => {
   try {
-    const db = await readDB();
-    const brands = {};
+    if (!req.file) {
+      return res.status(400).json({ error: 'Файл не загружен' });
+    }
     
-    db.cars.forEach(car => {
-      const brand = car.title.split(' ')[0]; // Первое слово - марка
-      if (!brands[brand]) {
-        brands[brand] = 0;
-      }
-      brands[brand]++;
-    });
+    const db = await readDB();
+    const carId = parseInt(req.params.id);
+    const carIndex = db.cars.findIndex(c => c.id === carId);
+    
+    if (carIndex === -1) {
+      fs.unlink(req.file.path).catch(console.error);
+      return res.status(404).json({ error: 'Автомобиль не найден' });
+    }
+    
+    const imageUrl = `/uploads/cars/${carId}/${req.file.filename}`;
+    db.cars[carIndex].image = imageUrl;
+    db.cars[carIndex].updatedAt = new Date().toISOString();
+    
+    await writeDB(db);
     
     res.json({
-      brands: Object.keys(brands),
-      stats: brands,
-      totalBrands: Object.keys(brands).length
+      success: true,
+      message: 'Основное фото загружено',
+      imageUrl: imageUrl,
+      fullUrl: `http://localhost:${PORT}${imageUrl}`
     });
   } catch (error) {
-    console.error('Ошибка получения марок:', error);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    console.error('Ошибка загрузки фото:', error);
+    res.status(500).json({ error: error.message || 'Ошибка сервера' });
   }
 });
 
-// Получение автомобилей по марке
-app.get('/api/cars/brand/:brand', async (req, res) => {
+// Загрузка нескольких фото в галерею
+app.post('/api/cars/:id/upload-gallery', upload.array('images', 10), async (req, res) => {
   try {
-    const db = await readDB();
-    const brand = req.params.brand.toLowerCase();
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'Файлы не загружены' });
+    }
     
-    const cars = db.cars.filter(car => 
-      car.title.toLowerCase().startsWith(brand + ' ')
+    const db = await readDB();
+    const carId = parseInt(req.params.id);
+    const carIndex = db.cars.findIndex(c => c.id === carId);
+    
+    if (carIndex === -1) {
+      req.files.forEach(file => {
+        fs.unlink(file.path).catch(console.error);
+      });
+      return res.status(404).json({ error: 'Автомобиль не найден' });
+    }
+    
+    const uploadedImages = req.files.map(file => 
+      `/uploads/cars/${carId}/${file.filename}`
     );
     
-    res.json(cars.map(car => ({
-      ...car,
-      image: safeImageUrl(car.image)
-    })));
+    if (!db.cars[carIndex].gallery) {
+      db.cars[carIndex].gallery = [];
+    }
+    
+    db.cars[carIndex].gallery.push(...uploadedImages);
+    db.cars[carIndex].updatedAt = new Date().toISOString();
+    
+    await writeDB(db);
+    
+    res.json({
+      success: true,
+      message: `Загружено ${req.files.length} фото`,
+      images: uploadedImages.map(img => `http://localhost:${PORT}${img}`),
+      totalInGallery: db.cars[carIndex].gallery.length
+    });
   } catch (error) {
-    console.error('Ошибка получения автомобилей по марке:', error);
+    console.error('Ошибка загрузки галереи:', error);
+    res.status(500).json({ error: error.message || 'Ошибка сервера' });
+  }
+});
+
+// Удаление фото из галереи
+app.delete('/api/cars/:id/gallery/:filename', async (req, res) => {
+  try {
+    const db = await readDB();
+    const carId = parseInt(req.params.id);
+    const filename = req.params.filename;
+    const carIndex = db.cars.findIndex(c => c.id === carId);
+    
+    if (carIndex === -1) {
+      return res.status(404).json({ error: 'Автомобиль не найден' });
+    }
+    
+    const car = db.cars[carIndex];
+    const filePath = path.join(__dirname, 'uploads', 'cars', carId.toString(), filename);
+    
+    try {
+      await fs.unlink(filePath);
+    } catch (err) {
+      console.error('Ошибка удаления файла:', err);
+    }
+    
+    if (car.gallery) {
+      car.gallery = car.gallery.filter(img => !img.includes(filename));
+    }
+    
+    if (car.image && car.image.includes(filename)) {
+      car.image = null;
+    }
+    
+    car.updatedAt = new Date().toISOString();
+    await writeDB(db);
+    
+    res.json({
+      success: true,
+      message: 'Фото удалено'
+    });
+  } catch (error) {
+    console.error('Ошибка удаления фото:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Добавление автомобиля (для админа)
+// Получение списка фото автомобиля
+app.get('/api/cars/:id/images', async (req, res) => {
+  try {
+    const db = await readDB();
+    const carId = parseInt(req.params.id);
+    const car = db.cars.find(c => c.id === carId);
+    
+    if (!car) {
+      return res.status(404).json({ error: 'Автомобиль не найден' });
+    }
+    
+    const carFolder = path.join(__dirname, 'uploads', 'cars', carId.toString());
+    let files = [];
+    
+    try {
+      files = await fs.readdir(carFolder);
+    } catch (err) {
+      files = [];
+    }
+    
+    const images = files.map(file => ({
+      filename: file,
+      url: `/uploads/cars/${carId}/${file}`,
+      fullUrl: `http://localhost:${PORT}/uploads/cars/${carId}/${file}`,
+      isMain: car.image && car.image.includes(file)
+    }));
+    
+    res.json({
+      carId,
+      mainImage: car.image ? `http://localhost:${PORT}${car.image}` : null,
+      gallery: (car.gallery || []).map(img => `http://localhost:${PORT}${img}`),
+      uploadedFiles: images,
+      total: images.length
+    });
+  } catch (error) {
+    console.error('Ошибка получения фото:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Установка фото как основного
+app.put('/api/cars/:id/set-main/:filename', async (req, res) => {
+  try {
+    const db = await readDB();
+    const carId = parseInt(req.params.id);
+    const filename = req.params.filename;
+    const carIndex = db.cars.findIndex(c => c.id === carId);
+    
+    if (carIndex === -1) {
+      return res.status(404).json({ error: 'Автомобиль не найден' });
+    }
+    
+    db.cars[carIndex].image = `/uploads/cars/${carId}/${filename}`;
+    db.cars[carIndex].updatedAt = new Date().toISOString();
+    
+    await writeDB(db);
+    
+    res.json({
+      success: true,
+      message: 'Фото установлено как основное',
+      imageUrl: `http://localhost:${PORT}/uploads/cars/${carId}/${filename}`
+    });
+  } catch (error) {
+    console.error('Ошибка установки основного фото:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Добавление автомобиля
 app.post('/api/cars', async (req, res) => {
   try {
     const db = await readDB();
     const newCar = {
       id: db.cars.length > 0 ? Math.max(...db.cars.map(c => c.id)) + 1 : 1,
       ...req.body,
-      image: safeImageUrl(req.body.image),
-      createdAt: new Date().toISOString(),
-      auctionGrade: req.body.auctionGrade || 4.0
+      createdAt: new Date().toISOString()
     };
     
     db.cars.push(newCar);
@@ -322,7 +484,6 @@ app.put('/api/cars/:id', async (req, res) => {
     db.cars[carIndex] = {
       ...db.cars[carIndex],
       ...req.body,
-      image: safeImageUrl(req.body.image || db.cars[carIndex].image),
       updatedAt: new Date().toISOString()
     };
     
@@ -359,7 +520,6 @@ app.delete('/api/cars/:id', async (req, res) => {
 app.post('/api/calculate', (req, res) => {
   const { price, engineType, engineVolume } = req.body;
   
-  // Расчеты
   let customsRate = 0.48;
   let exciseRate = 0.35;
   
@@ -417,10 +577,7 @@ app.get('/api/stats', async (req, res) => {
     }
     
     const averagePrice = Math.round(db.cars.reduce((sum, car) => sum + car.price, 0) / db.cars.length);
-    const currentYear = new Date().getFullYear();
-    const recentCars = db.cars.filter(car => car.year >= currentYear - 2).length;
     
-    // Самые популярные марки
     const brandCounts = {};
     db.cars.forEach(car => {
       const brand = car.title.split(' ')[0];
@@ -432,7 +589,6 @@ app.get('/api/stats', async (req, res) => {
       .slice(0, 5)
       .map(([brand, count]) => ({ brand, count }));
     
-    // Распределение по ценам
     const priceRanges = {
       cheap: db.cars.filter(car => car.price < 15000).length,
       medium: db.cars.filter(car => car.price >= 15000 && car.price < 25000).length,
@@ -444,7 +600,6 @@ app.get('/api/stats', async (req, res) => {
       averagePrice,
       minPrice: Math.min(...db.cars.map(car => car.price)),
       maxPrice: Math.max(...db.cars.map(car => car.price)),
-      recentCars,
       popularBrands,
       priceRanges,
       services: [...new Set(db.cars.map(car => car.service))],
@@ -465,7 +620,6 @@ async function initDatabase() {
   try {
     const db = await readDB();
     
-    // Если база пустая, добавляем 15 автомобилей
     if (db.cars.length === 0) {
       db.cars = [
         {
@@ -476,7 +630,7 @@ async function initDatabase() {
           year: 2020,
           mileage: "45,000 km",
           engine: "2.5L Hybrid",
-          image: "https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=800&auto=format&fit=crop",
+          image: null,
           auctionGrade: 4.5,
           description: "Toyota Crown 2020 года в идеальном состоянии. Японская комплектация, безаварийная история.",
           location: "Tokyo, Japan",
@@ -493,7 +647,7 @@ async function initDatabase() {
           year: 2019,
           mileage: "32,000 km",
           engine: "1.5L Petrol",
-          image: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800&auto=format&fit=crop",
+          image: null,
           auctionGrade: 4.0,
           description: "Экономичный и практичный Honda Fit. Идеален для города, малый расход топлива.",
           location: "Osaka, Japan",
@@ -510,7 +664,7 @@ async function initDatabase() {
           year: 2021,
           mileage: "28,000 km",
           engine: "2.0L Turbo",
-          image: "https://images.unsplash.com/photo-1555212697-194d092e3b8f?w=800&auto=format&fit=crop",
+          image: null,
           auctionGrade: 4.5,
           description: "Nissan X-Trail 2021 года, полный привод, отличное состояние. Без ДТП.",
           location: "Nagoya, Japan",
@@ -518,215 +672,11 @@ async function initDatabase() {
           features: ["Полный привод", "Панорамная крыша", "Кожаный салон", "Подогрев сидений"],
           color: "Серый",
           createdAt: new Date().toISOString()
-        },
-        {
-          id: 4,
-          title: "Toyota Prius 2022",
-          price: 19500,
-          service: "carfromjapan.com",
-          year: 2022,
-          mileage: "15,000 km",
-          engine: "1.8L Hybrid",
-          image: "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&auto=format&fit=crop",
-          auctionGrade: 5.0,
-          description: "Toyota Prius 2022 - новейшая модель гибрида. Минимальный пробег, экономичный.",
-          location: "Yokohama, Japan",
-          auctionDate: "2024-02-01",
-          features: ["Гибридный двигатель", "Беспроводная зарядка", "Apple CarPlay", "LED фары"],
-          color: "Белый",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 5,
-          title: "Mazda CX-5 2020",
-          price: 21500,
-          service: "beforward.jp",
-          year: 2020,
-          mileage: "38,000 km",
-          engine: "2.5L Petrol",
-          image: "https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800&auto=format&fit=crop",
-          auctionGrade: 4.0,
-          description: "Mazda CX-5 с фирменным дизайном KODO. Премиум качество сборки.",
-          location: "Kobe, Japan",
-          auctionDate: "2024-02-05",
-          features: ["Кожаный салон", "Bose акустика", "Круиз-контроль", "Светодиодные фары"],
-          color: "Красный",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 6,
-          title: "Subaru Forester 2021",
-          price: 23500,
-          service: "japan-partner.com",
-          year: 2021,
-          mileage: "22,000 km",
-          engine: "2.5L Boxer",
-          image: "https://images.unsplash.com/photo-1593941707882-a5bba5338fe2?w=800&auto=format&fit=crop",
-          auctionGrade: 4.5,
-          description: "Subaru Forester с фирменной системой полного привода Symmetrical AWD.",
-          location: "Sapporo, Japan",
-          auctionDate: "2024-02-10",
-          features: ["Полный привод", "Система EyeSight", "Подогрев руля", "Электропривод багажника"],
-          color: "Синий",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 7,
-          title: "Lexus RX 2020",
-          price: 32500,
-          service: "carfromjapan.com",
-          year: 2020,
-          mileage: "30,000 km",
-          engine: "3.5L V6 Hybrid",
-          image: "https://images.unsplash.com/photo-1563720223487-62f4f5c9a71b?w=800&auto=format&fit=crop",
-          auctionGrade: 4.8,
-          description: "Lexus RX 2020 - роскошный кроссовер с гибридным двигателем. Премиум-комплектация.",
-          location: "Kyoto, Japan",
-          auctionDate: "2024-02-15",
-          features: ["Премиум салон", "Адаптивный круиз", "Память сидений", "Камера 360°"],
-          color: "Черный",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 8,
-          title: "Toyota Hiace 2019",
-          price: 19500,
-          service: "beforward.jp",
-          year: 2019,
-          mileage: "50,000 km",
-          engine: "2.8L Diesel",
-          image: "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=800&auto=format&fit=crop",
-          auctionGrade: 4.2,
-          description: "Toyota Hiace 2019 - коммерческий микроавтобус в отличном состоянии.",
-          location: "Fukuoka, Japan",
-          auctionDate: "2024-02-18",
-          features: ["Кондиционер", "Круиз-контроль", "Боковые зеркала", "Большой багажник"],
-          color: "Белый",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 9,
-          title: "Honda Civic 2021",
-          price: 17500,
-          service: "carfromjapan.com",
-          year: 2021,
-          mileage: "25,000 km",
-          engine: "1.5L Turbo",
-          image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&auto=format&fit=crop",
-          auctionGrade: 4.7,
-          description: "Honda Civic 2021 с турбированным двигателем. Спортивный дизайн.",
-          location: "Hiroshima, Japan",
-          auctionDate: "2024-02-22",
-          features: ["Турбо-двигатель", "Спортивный режим", "Кожаный руль", "Цифровая панель"],
-          color: "Серый",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 10,
-          title: "Toyota RAV4 2020",
-          price: 24500,
-          service: "japan-partner.com",
-          year: 2020,
-          mileage: "35,000 km",
-          engine: "2.5L Hybrid",
-          image: "https://images.unsplash.com/photo-1566474603061-6bb158ec5f7f?w=800&auto=format&fit=crop",
-          auctionGrade: 4.6,
-          description: "Toyota RAV4 2020 года. Популярный кроссовер, надежный гибрид.",
-          location: "Sendai, Japan",
-          auctionDate: "2024-02-25",
-          features: ["Гибрид", "Полный привод", "Камера заднего вида", "Бесключевой доступ"],
-          color: "Серебристый",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 11,
-          title: "Mitsubishi Outlander 2021",
-          price: 20500,
-          service: "beforward.jp",
-          year: 2021,
-          mileage: "20,000 km",
-          engine: "2.4L PHEV",
-          image: "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=800&auto=format&fit=crop",
-          auctionGrade: 4.4,
-          description: "Mitsubishi Outlander PHEV 2021. Подключаемый гибрид, экономичный.",
-          location: "Nagasaki, Japan",
-          auctionDate: "2024-03-01",
-          features: ["Подключаемый гибрид", "Электропривод", "Большой багажник", "Панорамная крыша"],
-          color: "Белый",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 12,
-          title: "Nissan Skyline 2020",
-          price: 28500,
-          service: "carfromjapan.com",
-          year: 2020,
-          mileage: "18,000 km",
-          engine: "3.0L Twin-Turbo",
-          image: "https://images.unsplash.com/photo-1593941707882-a5bba5338fe2?w=800&auto=format&fit=crop",
-          auctionGrade: 4.9,
-          description: "Nissan Skyline 2020 - легендарный спортивный седан. Мощный двигатель.",
-          location: "Yokohama, Japan",
-          auctionDate: "2024-03-05",
-          features: ["Twin-Turbo", "Полный привод", "Спортивная подвеска", "Кожаный салон"],
-          color: "Синий",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 13,
-          title: "Toyota Alphard 2022",
-          price: 35500,
-          service: "japan-partner.com",
-          year: 2022,
-          mileage: "12,000 km",
-          engine: "2.5L Hybrid",
-          image: "https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=800&auto=format&fit=crop",
-          auctionGrade: 5.0,
-          description: "Toyota Alphard 2022 - премиум минивэн для комфортных поездок.",
-          location: "Osaka, Japan",
-          auctionDate: "2024-03-10",
-          features: ["Электропривод дверей", "Мягкие сиденья", "Развлекательная система", "Шумоизоляция"],
-          color: "Черный",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 14,
-          title: "Subaru Impreza 2019",
-          price: 16500,
-          service: "beforward.jp",
-          year: 2019,
-          mileage: "40,000 km",
-          engine: "2.0L Boxer",
-          image: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800&auto=format&fit=crop",
-          auctionGrade: 4.3,
-          description: "Subaru Impreza 2019 с фирменным оппозитным двигателем. Надежный автомобиль.",
-          location: "Tokyo, Japan",
-          auctionDate: "2024-03-15",
-          features: ["Оппозитный двигатель", "Полный привод", "Климат-контроль", "Музыкальная система"],
-          color: "Красный",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 15,
-          title: "Mazda MX-5 2021",
-          price: 27500,
-          service: "carfromjapan.com",
-          year: 2021,
-          mileage: "8,000 km",
-          engine: "2.0L Skyactiv",
-          image: "https://images.unsplash.com/photo-1555212697-194d092e3b8f?w=800&auto=format&fit=crop",
-          auctionGrade: 4.8,
-          description: "Mazda MX-5 2021 - спортивный родстер. Низкий пробег, отличное состояние.",
-          location: "Hiroshima, Japan",
-          auctionDate: "2024-03-20",
-          features: ["Спортивный родстер", "Механическая КПП", "Кожаный салон", "Люк"],
-          color: "Красный",
-          createdAt: new Date().toISOString()
         }
       ];
       
       await writeDB(db);
-      console.log('✅ База данных инициализирована с 15 автомобилями');
+      console.log('✅ База данных инициализирована с тестовыми данными');
     } else {
       console.log(`✅ База данных загружена: ${db.cars.length} автомобилей`);
     }
@@ -737,12 +687,11 @@ async function initDatabase() {
 
 // Запуск сервера
 app.listen(PORT, async () => {
+  await fs.mkdir(path.join(__dirname, 'uploads'), { recursive: true });
   await initDatabase();
   console.log(`🚗 Сервер запущен на http://localhost:${PORT}`);
   console.log(`✅ Health check: http://localhost:${PORT}/api/health`);
   console.log(`🎯 API cars: http://localhost:${PORT}/api/cars`);
+  console.log(`📁 Загрузки: http://localhost:${PORT}/uploads/`);
   console.log(`📊 Статистика: http://localhost:${PORT}/api/stats`);
-  console.log(`🏷️  Марки: http://localhost:${PORT}/api/brands`);
-  console.log(`🖼️  Тест фото: http://localhost:${PORT}/api/test-images`);
-  console.log(`📝 База данных: JSON файл (db.json)`);
 });

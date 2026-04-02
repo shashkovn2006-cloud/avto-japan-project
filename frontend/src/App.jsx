@@ -1,111 +1,168 @@
-// frontend/src/App.jsx
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect, createContext, useContext } from 'react';
 import axios from 'axios';
 import './App.css';
+import CarDetailPage from './pages/CarDetailPage';
 
-// Главная страница
-function HomePage() {
+const API_BASE = 'http://localhost:3001';
+const AuthContext = createContext();
+
+// Хук для использования авторизации
+export const useAuth = () => useContext(AuthContext);
+
+// Компонент защиты маршрутов
+const ProtectedRoute = ({ children, adminOnly = false }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) return <div className="loader"></div>;
+  
+  if (!user) return <Navigate to="/login" />;
+  if (adminOnly && user.role !== 'admin') return <Navigate to="/" />;
+  
+  return children;
+};
+
+// Компонент входа/регистрации
+function AuthPage() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const { login } = useAuth();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    try {
+      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+      const payload = isLogin ? { email, password } : { email, password, name };
+      
+      const response = await axios.post(`${API_BASE}${endpoint}`, payload, {
+        withCredentials: true
+      });
+      
+      if (response.data.success) {
+        login(response.data.user);
+        window.location.href = '/';
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Ошибка');
+    }
+  };
+
   return (
-    <div className="app fade-in">
-      <header className="header">
-        <h1><i className="fas fa-car"></i> AutoJapan Pro</h1>
-        <p>Прямые поставки автомобилей с японских аукционов</p>
+    <div className="app">
+      <div className="container" style={{ maxWidth: '500px', margin: '100px auto' }}>
+        <h2 style={{ textAlign: 'center' }}>{isLogin ? 'Вход' : 'Регистрация'}</h2>
         
-        <div className="hero-buttons">
-          <a href="/catalog" className="btn-primary">
-            <i className="fas fa-car"></i> Смотреть каталог
-          </a>
-          <a href="/calculator" className="btn-secondary">
-            <i className="fas fa-calculator"></i> Калькулятор стоимости
-          </a>
-        </div>
-      </header>
-
-      <div className="container">
-        <h2>Почему выбирают нас</h2>
-        <div className="features">
-          <div className="feature">
-            <i className="fas fa-shipping-fast"></i>
-            <h3>Быстрая доставка</h3>
-            <p>От 30 дней от аукциона до вашего города</p>
+        {error && <div style={{ background: 'rgba(255,107,107,0.2)', padding: '10px', borderRadius: '10px', marginBottom: '20px', color: 'var(--accent)' }}>{error}</div>}
+        
+        <form onSubmit={handleSubmit}>
+          {!isLogin && (
+            <div className="input-group">
+              <label>Имя</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+          )}
+          <div className="input-group">
+            <label>Email</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
-          <div className="feature">
-            <i className="fas fa-shield-alt"></i>
-            <h3>Гарантия качества</h3>
-            <p>Только проверенные автомобили</p>
+          <div className="input-group">
+            <label>Пароль</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
-          <div className="feature">
-            <i className="fas fa-calculator"></i>
-            <h3>Прозрачный расчет</h3>
-            <p>Все расходы включены в стоимость</p>
-          </div>
-          <div className="feature">
-            <i className="fas fa-headset"></i>
-            <h3>Поддержка 24/7</h3>
-            <p>Консультации на всех этапах покупки</p>
-          </div>
+          <button type="submit" className="btn-primary" style={{ width: '100%' }}>
+            {isLogin ? 'Войти' : 'Зарегистрироваться'}
+          </button>
+        </form>
+        
+        <p style={{ textAlign: 'center', marginTop: '20px' }}>
+          {isLogin ? 'Нет аккаунта? ' : 'Уже есть аккаунт? '}
+          <button onClick={() => setIsLogin(!isLogin)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer' }}>
+            {isLogin ? 'Зарегистрироваться' : 'Войти'}
+          </button>
+        </p>
+        
+        <div style={{ marginTop: '30px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+            <strong>Тестовые аккаунты:</strong><br />
+            Админ: admin@autojapan.pro / admin123<br />
+            Пользователь: user@autojapan.pro / admin123
+          </p>
         </div>
       </div>
     </div>
   );
 }
 
-// Страница каталога
+// Главная страница
+function HomePage() {
+  const { user } = useAuth();
+  
+  return (
+    <div className="app fade-in">
+      <header className="header">
+        <h1><i className="fas fa-car"></i> AutoJapan Pro</h1>
+        <p>Прямые поставки автомобилей с японских аукционов</p>
+        {user && <p style={{ color: 'var(--success)' }}>Добро пожаловать, {user.name}!</p>}
+        <div className="hero-buttons">
+          <a href="/catalog" className="btn-primary"><i className="fas fa-car"></i> Смотреть каталог</a>
+          <a href="/calculator" className="btn-secondary"><i className="fas fa-calculator"></i> Калькулятор стоимости</a>
+        </div>
+      </header>
+      <div className="container">
+        <h2>Почему выбирают нас</h2>
+        <div className="features">
+          <div className="feature"><i className="fas fa-shipping-fast"></i><h3>Быстрая доставка</h3><p>От 30 дней от аукциона до вашего города</p></div>
+          <div className="feature"><i className="fas fa-shield-alt"></i><h3>Гарантия качества</h3><p>Только проверенные автомобили</p></div>
+          <div className="feature"><i className="fas fa-calculator"></i><h3>Прозрачный расчет</h3><p>Все расходы включены в стоимость</p></div>
+          <div className="feature"><i className="fas fa-headset"></i><h3>Поддержка 24/7</h3><p>Консультации на всех этапах покупки</p></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CatalogPage() {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    minPrice: '',
-    maxPrice: '',
-    service: 'all',
-    sortBy: 'year_desc'
-  });
+  const [filters, setFilters] = useState({ minPrice: '', maxPrice: '', service: 'all', sortBy: 'year_desc' });
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 6;
 
+  // Загрузка при монтировании и при изменении фильтров
   useEffect(() => {
     fetchCars();
-  }, [currentPage, filters]);
+  }, [filters, searchTerm]);
 
   const fetchCars = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:3001/api/cars');
-      let filteredCars = response.data;
       
-      // Фильтрация
-      if (searchTerm) {
-        filteredCars = filteredCars.filter(car => 
-          car.title.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+      // Строим URL с параметрами
+      let url = 'http://localhost:3001/api/cars';
+      const params = new URLSearchParams();
+      
+      if (searchTerm) params.append('search', searchTerm);
+      if (filters.minPrice) params.append('minPrice', filters.minPrice);
+      if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+      if (filters.service && filters.service !== 'all') params.append('service', filters.service);
+      if (filters.sortBy) params.append('sortBy', filters.sortBy);
+      
+      if (params.toString()) {
+        url += '?' + params.toString();
       }
       
-      if (filters.minPrice) {
-        filteredCars = filteredCars.filter(car => car.price >= parseInt(filters.minPrice));
-      }
+      console.log('Запрос к API:', url); // Для отладки
       
-      if (filters.maxPrice) {
-        filteredCars = filteredCars.filter(car => car.price <= parseInt(filters.maxPrice));
-      }
+      const response = await axios.get(url);
+      console.log('Получено авто:', response.data); // Для отладки
       
-      if (filters.service && filters.service !== 'all') {
-        filteredCars = filteredCars.filter(car => car.service === filters.service);
-      }
-      
-      // Сортировка
-      if (filters.sortBy === 'price_asc') {
-        filteredCars.sort((a, b) => a.price - b.price);
-      } else if (filters.sortBy === 'price_desc') {
-        filteredCars.sort((a, b) => b.price - a.price);
-      } else if (filters.sortBy === 'year_desc') {
-        filteredCars.sort((a, b) => b.year - a.year);
-      }
-      
-      setCars(filteredCars);
-      setTotalPages(Math.ceil(filteredCars.length / itemsPerPage));
+      setCars(response.data);
     } catch (error) {
       console.error('Ошибка загрузки:', error);
     } finally {
@@ -113,201 +170,135 @@ function CatalogPage() {
     }
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setCurrentPage(1);
-    fetchCars();
-  };
-
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFilters(prev => ({ ...prev, [name]: value }));
     setCurrentPage(1);
   };
 
   const resetFilters = () => {
     setSearchTerm('');
-    setFilters({
-      minPrice: '',
-      maxPrice: '',
-      service: 'all',
-      sortBy: 'year_desc'
-    });
+    setFilters({ minPrice: '', maxPrice: '', service: 'all', sortBy: 'year_desc' });
     setCurrentPage(1);
-    fetchCars();
+    setTimeout(() => fetchCars(), 0);
   };
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const paginatedCars = cars.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(cars.length / itemsPerPage);
 
-  // Получаем автомобили для текущей страницы
-  const paginatedCars = cars.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  if (loading) {
+    return (
+      <div className="app">
+        <div className="container text-center">
+          <div className="loader"></div>
+          <p>Загрузка автомобилей...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app fade-in">
-      {/* Заголовок */}
       <div className="container text-center">
         <h1>Каталог автомобилей из Японии</h1>
         <p className="text-secondary">Подборка лучших автомобилей с японских аукционов</p>
       </div>
-
-      {/* Поиск и фильтры */}
+      
       <div className="container">
-        <form onSubmit={handleSearch} className="filters-form">
-          <div className="search-container">
-            <input
-              type="text"
-              placeholder="Поиск по марке или модели..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <button type="submit" className="btn-accent">
-              <i className="fas fa-search"></i> Найти
-            </button>
-            <button type="button" onClick={resetFilters} className="btn-secondary">
-              Сбросить
-            </button>
+        <div className="search-container">
+          <input 
+            type="text" 
+            placeholder="Поиск по марке или модели..." 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && fetchCars()}
+          />
+          <button className="btn-accent" onClick={fetchCars}>
+            <i className="fas fa-search"></i> Найти
+          </button>
+          <button className="btn-secondary" onClick={resetFilters}>
+            Сбросить
+          </button>
+        </div>
+        
+        <div className="filters">
+          <div className="filter-group">
+            <label>Цена от ($)</label>
+            <input type="number" name="minPrice" value={filters.minPrice} onChange={handleFilterChange} placeholder="0" />
           </div>
-
-          <div className="filters">
-            <div className="filter-group">
-              <label>Цена от ($)</label>
-              <input
-                type="number"
-                name="minPrice"
-                value={filters.minPrice}
-                onChange={handleFilterChange}
-                placeholder="0"
-              />
-            </div>
-            
-            <div className="filter-group">
-              <label>Цена до ($)</label>
-              <input
-                type="number"
-                name="maxPrice"
-                value={filters.maxPrice}
-                onChange={handleFilterChange}
-                placeholder="100000"
-              />
-            </div>
-            
-            <div className="filter-group">
-              <label>Сервис</label>
-              <select
-                name="service"
-                value={filters.service}
-                onChange={handleFilterChange}
-              >
-                <option value="all">Все сервисы</option>
-                <option value="carfromjapan.com">CarFromJapan</option>
-                <option value="beforward.jp">BeForward</option>
-                <option value="japan-partner.com">Japan Partner</option>
-              </select>
-            </div>
-            
-            <div className="filter-group">
-              <label>Сортировка</label>
-              <select
-                name="sortBy"
-                value={filters.sortBy}
-                onChange={handleFilterChange}
-              >
-                <option value="year_desc">Сначала новые</option>
-                <option value="price_asc">Сначала дешевле</option>
-                <option value="price_desc">Сначала дороже</option>
-                <option value="mileage_asc">Меньший пробег</option>
-              </select>
-            </div>
+          <div className="filter-group">
+            <label>Цена до ($)</label>
+            <input type="number" name="maxPrice" value={filters.maxPrice} onChange={handleFilterChange} placeholder="100000" />
           </div>
-        </form>
+          <div className="filter-group">
+            <label>Сервис</label>
+            <select name="service" value={filters.service} onChange={handleFilterChange}>
+              <option value="all">Все</option>
+              <option value="carfromjapan.com">CarFromJapan</option>
+              <option value="beforward.jp">BeForward</option>
+              <option value="japan-partner.com">Japan Partner</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Сортировка</label>
+            <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange}>
+              <option value="year_desc">Сначала новые</option>
+              <option value="price_asc">Сначала дешевле</option>
+              <option value="price_desc">Сначала дороже</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      {/* Результаты */}
-      {loading ? (
-        <div className="container text-center">
-          <div className="loader"></div>
-          <p className="loading">Загрузка автомобилей...</p>
-        </div>
-      ) : paginatedCars.length === 0 ? (
+      {cars.length === 0 ? (
         <div className="container text-center">
           <i className="fas fa-car" style={{ fontSize: '60px', color: 'var(--accent)', marginBottom: '20px' }}></i>
           <h3>Автомобили не найдены</h3>
           <p className="text-secondary">Попробуйте изменить параметры поиска</p>
+          <button className="btn-primary" onClick={resetFilters}>Сбросить фильтры</button>
         </div>
       ) : (
         <>
           <div className="container">
             <div className="results-header">
-              <div>
-                Найдено автомобилей: <span className="text-accent">{cars.length}</span>
-              </div>
-              <div className="text-secondary">
-                Страница {currentPage} из {totalPages}
-              </div>
+              <div>Найдено автомобилей: <span className="text-accent">{cars.length}</span></div>
+              <div className="text-secondary">Страница {currentPage} из {totalPages}</div>
             </div>
 
             <div className="cars-grid">
               {paginatedCars.map(car => (
-                <div 
-                  key={car.id} 
-                  className="car-card hover-lift"
-                  onClick={() => window.location.href = `/car/${car.id}`}
-                >
+                <div key={car.id} className="car-card hover-lift" onClick={() => window.location.href = `/car/${car.id}`}>
                   <div className="car-image">
-                    <div className="image-placeholder">
+                    {car.image ? (
+                      <img src={car.image} alt={car.title} onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }} />
+                    ) : null}
+                    <div className="image-placeholder" style={{ display: car.image ? 'none' : 'flex' }}>
                       <i className="fas fa-car"></i>
                     </div>
                     <span className="car-badge">{car.service}</span>
                     <div className="auction-badge">
-                      <i className="fas fa-gavel"></i>
-                      {car.auctionGrade || '4.5'}/5
+                      <i className="fas fa-gavel"></i>{car.auctionGrade || '4.5'}/5
                     </div>
                   </div>
-
                   <div className="car-info">
                     <h3>{car.title}</h3>
-                    
                     <div className="car-details">
-                      <span>
-                        <i className="fas fa-calendar"></i>
-                        {car.year} год
-                      </span>
-                      <span>
-                        <i className="fas fa-road"></i>
-                        {car.mileage}
-                      </span>
-                      <span>
-                        <i className="fas fa-gas-pump"></i>
-                        {car.engine}
-                      </span>
-                      <span>
-                        <i className="fas fa-map-marker-alt"></i>
-                        Япония
-                      </span>
+                      <span><i className="fas fa-calendar"></i>{car.year} год</span>
+                      <span><i className="fas fa-road"></i>{car.mileage}</span>
+                      <span><i className="fas fa-gas-pump"></i>{car.engine}</span>
                     </div>
-
                     <div className="car-price-section">
                       <div className="car-price">
                         <div className="price-label">Цена в Японии</div>
-                        <div className="price-value">${car.price.toLocaleString()}</div>
+                        <div className="price-value">${(typeof car.price === 'string' ? parseInt(car.price) : car.price).toLocaleString()}</div>
                       </div>
-                      
-                      <button 
-                        className="btn-primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.location.href = `/car/${car.id}`;
-                        }}
-                      >
+                      <button className="btn-primary" onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.href = `/car/${car.id}`;
+                      }}>
                         <i className="fas fa-eye"></i> Подробнее
                       </button>
                     </div>
@@ -317,31 +308,19 @@ function CatalogPage() {
             </div>
           </div>
 
-          {/* Пагинация */}
           {totalPages > 1 && (
             <div className="container">
               <div className="pagination">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
+                <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage === 1}>
                   <i className="fas fa-chevron-left"></i> Назад
                 </button>
-                
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={currentPage === page ? 'active' : ''}
-                  >
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(page => (
+                  <button key={page} onClick={() => setCurrentPage(page)} className={currentPage === page ? 'active' : ''}>
                     {page}
                   </button>
                 ))}
-                
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
+                {totalPages > 5 && <span>...</span>}
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} disabled={currentPage === totalPages}>
                   Вперед <i className="fas fa-chevron-right"></i>
                 </button>
               </div>
@@ -353,396 +332,163 @@ function CatalogPage() {
   );
 }
 
-// Страница деталей автомобиля
-function CarDetailPage() {
-  const [car, setCar] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [mainImage, setMainImage] = useState('');
-
-  const carId = window.location.pathname.split('/').pop();
-
-  useEffect(() => {
-    fetchCarDetails();
-  }, []);
-
-  const fetchCarDetails = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`http://localhost:3001/api/cars/${carId}`);
-      setCar(response.data);
-      setMainImage(response.data.image || '');
-    } catch (error) {
-      console.error('Ошибка загрузки деталей:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="app text-center">
-        <div className="loader"></div>
-        <p className="loading">Загрузка данных автомобиля...</p>
-      </div>
-    );
-  }
-
-  if (!car) {
-    return (
-      <div className="app text-center">
-        <h2>Автомобиль не найден</h2>
-        <button 
-          onClick={() => window.location.href = '/'}
-          className="btn-primary mt-20"
-        >
-          Вернуться на главную
-        </button>
-      </div>
-    );
-  }
-
-  const galleryImages = [
-    'https://images.unsplash.com/photo-1599912027806-cfec9f5944b6?w=800&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1620891549027-942fdc95d3f5?w=800&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1621330396175-92a4348e1eb8?w=800&auto=format&fit=crop'
-  ];
-
-  return (
-    <div className="app fade-in">
-      {/* Навигация */}
-      <nav className="breadcrumbs">
-        <button onClick={() => window.location.href = '/'}>
-          Главная
-        </button>
-        <span> / </span>
-        <button onClick={() => window.location.href = '/catalog'}>
-          Каталог
-        </button>
-        <span> / </span>
-        <span>{car.title}</span>
-      </nav>
-
-      <div className="container">
-        <div className="car-detail-grid">
-          {/* Левая колонка */}
-          <div className="car-gallery">
-            <div className="main-image">
-              <div className="image-placeholder-large">
-                <i className="fas fa-car"></i>
-              </div>
-              <span className="auction-badge-large">
-                <i className="fas fa-gavel"></i> 
-                Аукцион: {car.auctionGrade || '4.5'}/5
-              </span>
-            </div>
-            
-            {/* Галерея миниатюр */}
-            <div className="thumbnails-grid">
-              {galleryImages.map((img, index) => (
-                <img 
-                  key={index}
-                  src={img}
-                  alt={`${car.title} - фото ${index + 1}`}
-                  className={`thumbnail ${mainImage === img ? 'active' : ''}`}
-                  onClick={() => setMainImage(img)}
-                  onError={(e) => {
-                    e.target.src = `https://via.placeholder.com/100x70/ff6b6b/ffffff?text=Photo+${index + 1}`;
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Правая колонка */}
-          <div className="car-detail-info">
-            <div className="car-header">
-              <h1>{car.title}</h1>
-              <span className="service-badge">
-                <i className="fas fa-store"></i> {car.service}
-              </span>
-            </div>
-
-            <div className="price-section">
-              <div className="price-info">
-                <span className="price-label">Цена в Японии:</span>
-                <span className="price-value">${car.price.toLocaleString()}</span>
-              </div>
-              <button 
-                onClick={() => window.location.href = '/calculator'}
-                className="btn-accent"
-              >
-                <i className="fas fa-calculator"></i> 
-                Рассчитать полную стоимость
-              </button>
-            </div>
-
-            {/* Характеристики */}
-            <div className="specs-section">
-              <h3><i className="fas fa-list"></i> Характеристики</h3>
-              <div className="specs-grid">
-                <div className="spec-item">
-                  <span className="spec-label">Год выпуска:</span>
-                  <span className="spec-value">{car.year}</span>
-                </div>
-                <div className="spec-item">
-                  <span className="spec-label">Пробег:</span>
-                  <span className="spec-value">{car.mileage}</span>
-                </div>
-                <div className="spec-item">
-                  <span className="spec-label">Двигатель:</span>
-                  <span className="spec-value">{car.engine}</span>
-                </div>
-                <div className="spec-item">
-                  <span className="spec-label">Локация:</span>
-                  <span className="spec-value">{car.location || 'Tokyo, Japan'}</span>
-                </div>
-                <div className="spec-item">
-                  <span className="spec-label">Дата аукциона:</span>
-                  <span className="spec-value">{car.auctionDate || '2024-01-15'}</span>
-                </div>
-                <div className="spec-item">
-                  <span className="spec-label">Оценка:</span>
-                  <span className="spec-value">{car.auctionGrade || '4.5'}/5</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Описание */}
-            <div className="description-section">
-              <h3><i className="fas fa-file-alt"></i> Описание</h3>
-              <p>
-                {car.description || `Автомобиль ${car.title} в отличном состоянии с японского аукциона. Полностью исправен, без ДТП. Идеальный вариант для комфортной езды по городу.`}
-              </p>
-            </div>
-
-            {/* Кнопки действий */}
-            <div className="action-buttons">
-              <button className="btn-primary">
-                <i className="fas fa-heart"></i> В избранное
-              </button>
-              <button className="btn-accent">
-                <i className="fas fa-shopping-cart"></i> Купить сейчас
-              </button>
-              <button className="btn-secondary">
-                <i className="fas fa-envelope"></i> Запросить консультацию
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // Страница калькулятора
 function CalculatorPage() {
-  const [calcData, setCalcData] = useState({
-    price: '',
-    engineType: 'petrol',
-    engineVolume: '2.0'
-  });
+  const [calcData, setCalcData] = useState({ price: '', engineType: 'petrol', engineVolume: '2.0' });
   const [calculation, setCalculation] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setCalcData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
 
   const calculateCustoms = async () => {
     try {
       setLoading(true);
-      const response = await axios.post('http://localhost:3001/api/calculate', calcData);
+      const response = await axios.post(`${API_BASE}/api/calculate`, calcData);
       setCalculation(response.data);
+    } catch (error) { alert('Ошибка расчета'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="app fade-in">
+      <div className="container text-center"><h1>Калькулятор стоимости</h1><p>Рассчитайте полную стоимость ввоза автомобиля из Японии</p></div>
+      <div className="calculator-section"><div className="calculator">
+        <div className="input-group"><label>Стоимость авто ($)</label><input type="number" name="price" value={calcData.price} onChange={(e) => setCalcData({...calcData, price: e.target.value})} placeholder="20000" /></div>
+        <div className="input-group"><label>Тип двигателя</label><select name="engineType" value={calcData.engineType} onChange={(e) => setCalcData({...calcData, engineType: e.target.value})}><option value="petrol">Бензин</option><option value="diesel">Дизель</option><option value="hybrid">Гибрид</option><option value="electric">Электрический</option></select></div>
+        <div className="input-group"><label>Объем двигателя (л)</label><input type="number" name="engineVolume" value={calcData.engineVolume} onChange={(e) => setCalcData({...calcData, engineVolume: e.target.value})} step="0.1" /></div>
+        <button onClick={calculateCustoms} className="btn-calculate" disabled={loading}>{loading ? "Расчет..." : "Рассчитать"}</button>
+        {calculation && (<div className="calculation-result"><h3>Результаты расчета</h3><div className="breakdown"><div className="breakdown-item"><span>Стоимость авто:</span><span>${calculation.price.toLocaleString()}</span></div><div className="breakdown-item"><span>Таможенная пошлина:</span><span>${calculation.customs.toLocaleString()}</span></div><div className="breakdown-item"><span>Акцизный сбор:</span><span>${calculation.excise.toLocaleString()}</span></div><div className="breakdown-item"><span>НДС (20%):</span><span>${calculation.vat.toLocaleString()}</span></div><div className="breakdown-item"><span>Утилизационный сбор:</span><span>${calculation.processingFee.toLocaleString()}</span></div><div className="breakdown-item"><span>Доставка:</span><span>${calculation.shipping.toLocaleString()}</span></div><div className="breakdown-item total"><span>ИТОГО:</span><span>${calculation.total.toLocaleString()}</span></div></div></div>)}
+      </div></div>
+    </div>
+  );
+}
+
+// Админка (только для админов)
+function AdminCarsPage() {
+  const [cars, setCars] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingCar, setEditingCar] = useState(null);
+  const [formData, setFormData] = useState({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '', features: [] });
+
+  useEffect(() => { fetchCars(); }, []);
+
+  const fetchCars = async () => {
+    try { const res = await axios.get(`${API_BASE}/api/cars`); setCars(res.data); } 
+    catch (error) { console.error(error); } 
+    finally { setLoading(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (confirm('Удалить?')) { 
+      await axios.delete(`${API_BASE}/api/cars/${id}`, { withCredentials: true }); 
+      fetchCars(); 
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (editingCar) { await axios.put(`${API_BASE}/api/cars/${editingCar.id}`, formData, { withCredentials: true }); }
+    else { await axios.post(`${API_BASE}/api/cars`, formData, { withCredentials: true }); }
+    setShowForm(false); setEditingCar(null); fetchCars();
+  };
+
+  const handleUploadImage = async (carId, file) => {
+    const formData = new FormData(); formData.append('image', file);
+    await axios.post(`${API_BASE}/api/cars/${carId}/upload-main`, formData, { 
+      headers: { 'Content-Type': 'multipart/form-data' },
+      withCredentials: true 
+    });
+    fetchCars();
+  };
+
+  return (
+    <div className="app"><div className="container">
+      <div className="admin-header"><h1>Управление автомобилями</h1><button className="btn-primary" onClick={() => { setEditingCar(null); setFormData({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '' }); setShowForm(true); }}>+ Добавить авто</button></div>
+      {showForm && (<div className="admin-form"><h2>{editingCar ? 'Редактировать' : 'Новый автомобиль'}</h2><form onSubmit={handleSubmit}><div className="form-grid"><input placeholder="Название" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required /><input type="number" placeholder="Цена" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required /><input placeholder="Сервис" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} required /><input type="number" placeholder="Год" value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} required /><input placeholder="Пробег" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} required /><input placeholder="Двигатель" value={formData.engine} onChange={e => setFormData({...formData, engine: e.target.value})} required /><textarea placeholder="Описание" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows="3" /></div><div className="form-buttons"><button type="submit" className="btn-accent">Сохранить</button><button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingCar(null); }}>Отмена</button></div></form></div>)}
+      {loading ? <div className="loader"></div> : (<table className="admin-table"><thead><tr><th>ID</th><th>Фото</th><th>Название</th><th>Цена</th><th>Год</th><th>Действия</th></tr></thead><tbody>{cars.map(car => (<tr key={car.id}><td>{car.id}</td><td>{car.image ? <img src={car.image} style={{width: '50px', height: '35px', objectFit: 'cover'}} /> : <i className="fas fa-car"></i>}</td><td>{car.title}</td><td>${car.price}</td><td>{car.year}</td><td><button className="btn-small" onClick={() => { setEditingCar(car); setFormData(car); setShowForm(true); }}>✏️</button><button className="btn-small btn-danger" onClick={() => handleDelete(car.id)}>🗑️</button><input type="file" accept="image/*" style={{display: 'none'}} id={`upload-${car.id}`} onChange={e => handleUploadImage(car.id, e.target.files[0])} /><button className="btn-small" onClick={() => document.getElementById(`upload-${car.id}`).click()}>📷</button></td></tr>))}</tbody></table>)}
+    </div></div>
+  );
+}
+
+// Главный App с авторизацией
+function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/api/auth/me`, { withCredentials: true });
+      setUser(response.data.user);
     } catch (error) {
-      console.error('Ошибка расчета:', error);
-      alert('Ошибка расчета. Проверьте введенные данные.');
+      setUser(null);
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="app fade-in">
-      <div className="container text-center">
-        <h1>Калькулятор стоимости</h1>
-        <p className="text-secondary">Рассчитайте полную стоимость ввоза автомобиля из Японии</p>
-      </div>
+  const login = (userData) => {
+    setUser(userData);
+  };
 
-      <div className="calculator-section">
-        <div className="calculator">
-          <div className="input-group">
-            <label>Стоимость авто в Японии ($)</label>
-            <input 
-              type="number" 
-              name="price"
-              value={calcData.price}
-              onChange={handleInputChange}
-              placeholder="Например: 20000"
-            />
-          </div>
-          
-          <div className="input-group">
-            <label>Тип двигателя</label>
-            <select 
-              name="engineType"
-              value={calcData.engineType}
-              onChange={handleInputChange}
-            >
-              <option value="petrol">Бензин</option>
-              <option value="diesel">Дизель</option>
-              <option value="hybrid">Гибрид</option>
-              <option value="electric">Электрический</option>
-            </select>
-          </div>
-          
-          <div className="input-group">
-            <label>Объем двигателя (л)</label>
-            <input 
-              type="number" 
-              name="engineVolume"
-              value={calcData.engineVolume}
-              onChange={handleInputChange}
-              placeholder="Например: 2.0"
-              step="0.1"
-              min="0.5"
-              max="6.0"
-            />
-          </div>
-          
-          <button 
-            onClick={calculateCustoms}
-            className="btn-calculate"
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <i className="fas fa-spinner fa-spin"></i> Расчет...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-calculator"></i> Рассчитать
-              </>
-            )}
-          </button>
-          
-          {calculation && (
-            <div className="calculation-result">
-              <h3>Результаты расчета</h3>
-              <div className="breakdown">
-                <div className="breakdown-item">
-                  <span>Стоимость авто:</span>
-                  <span>${calculation.price.toLocaleString()}</span>
-                </div>
-                <div className="breakdown-item">
-                  <span>Таможенная пошлина:</span>
-                  <span>${calculation.customs.toLocaleString()}</span>
-                </div>
-                <div className="breakdown-item">
-                  <span>Акцизный сбор:</span>
-                  <span>${calculation.excise.toLocaleString()}</span>
-                </div>
-                <div className="breakdown-item">
-                  <span>НДС (20%):</span>
-                  <span>${calculation.vat.toLocaleString()}</span>
-                </div>
-                <div className="breakdown-item">
-                  <span>Утилизационный сбор:</span>
-                  <span>${calculation.processingFee.toLocaleString()}</span>
-                </div>
-                <div className="breakdown-item">
-                  <span>Доставка из Японии:</span>
-                  <span>${calculation.shipping.toLocaleString()}</span>
-                </div>
-                <div className="breakdown-item total">
-                  <span>ИТОГО к оплате:</span>
-                  <span>${calculation.total.toLocaleString()}</span>
-                </div>
+  const logout = async () => {
+    await axios.post(`${API_BASE}/api/auth/logout`, {}, { withCredentials: true });
+    setUser(null);
+    window.location.href = '/';
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      <Router>
+        <div className="app-wrapper">
+          <nav className="navbar">
+            <div className="nav-content">
+              <a href="/" className="logo"><i className="fas fa-car"></i>Auto<span className="text-gradient">Japan</span><span className="text-accent">Pro</span></a>
+              <div className="nav-links">
+                <a href="/" className="nav-link">Главная</a>
+                <a href="/catalog" className="nav-link">Каталог</a>
+                <a href="/calculator" className="nav-link">Калькулятор</a>
+                {user?.role === 'admin' && <a href="/admin/cars" className="nav-link">Админка</a>}
+                {user && <a href="/favorites" className="nav-link"><i className="fas fa-heart"></i> Избранное</a>}
               </div>
+              {user ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>{user.name}</span>
+                  <button onClick={logout} className="btn-secondary" style={{ padding: '8px 20px' }}>Выйти</button>
+                </div>
+              ) : (
+                <a href="/login" className="btn-accent"><i className="fas fa-user"></i> Войти</a>
+              )}
             </div>
-          )}
+          </nav>
+          <main>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/catalog" element={<CatalogPage />} />
+              <Route path="/car/:id" element={<CarDetailPage />} />
+              <Route path="/calculator" element={<CalculatorPage />} />
+              <Route path="/login" element={<AuthPage />} />
+              <Route path="/admin/cars" element={
+                <ProtectedRoute adminOnly={true}>
+                  <AdminCarsPage />
+                </ProtectedRoute>
+              } />
+            </Routes>
+          </main>
+          <footer className="footer">
+            <div className="footer-content">
+              <div className="footer-section"><h3>AutoJapan Pro</h3><p>Прямые поставки автомобилей из Японии с 2010 года</p></div>
+              <div className="footer-section"><h3>Контакты</h3><p><i className="fas fa-phone"></i> +7 (XXX) XXX-XX-XX</p><p><i className="fas fa-envelope"></i> info@autojapan.pro</p></div>
+              <div className="footer-section"><h3>Мы в соцсетях</h3><div className="social-links"><a href="#"><i className="fab fa-telegram"></i></a><a href="#"><i className="fab fa-whatsapp"></i></a><a href="#"><i className="fab fa-vk"></i></a></div></div>
+            </div>
+            <div className="footer-bottom"><p>© 2024 AutoJapan Pro. Все права защищены.</p></div>
+          </footer>
         </div>
-      </div>
-    </div>
+      </Router>
+    </AuthContext.Provider>
   );
 }
-
-// Главный App компонент
-function App() {
-  return (
-    <Router>
-      <div className="app-wrapper">
-        {/* Навигация */}
-        <nav className="navbar">
-          <div className="nav-content">
-            <a href="/" className="logo">
-              <i className="fas fa-car"></i>
-              Auto<span className="text-gradient">Japan</span><span className="text-accent">Pro</span>
-            </a>
-            
-            <div className="nav-links">
-              <a href="/" className="nav-link">Главная</a>
-              <a href="/catalog" className="nav-link">Каталог</a>
-              <a href="/calculator" className="nav-link">Калькулятор</a>
-              <a href="#contacts" className="nav-link">Контакты</a>
-            </div>
-            
-            <button className="btn-accent">
-              <i className="fas fa-user"></i> Войти
-            </button>
-          </div>
-        </nav>
-
-        <main>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/catalog" element={<CatalogPage />} />
-            <Route path="/car/:id" element={<CarDetailPage />} />
-            <Route path="/calculator" element={<CalculatorPage />} />
-          </Routes>
-        </main>
-
-        {/* Футер */}
-        <footer className="footer">
-          <div className="footer-content">
-            <div className="footer-section">
-              <h3>AutoJapan Pro</h3>
-              <p>Прямые поставки автомобилей из Японии с 2010 года</p>
-            </div>
-            <div className="footer-section">
-              <h3>Контакты</h3>
-              <p><i className="fas fa-phone"></i> +7 (XXX) XXX-XX-XX</p>
-              <p><i className="fas fa-envelope"></i> info@autojapan.pro</p>
-            </div>
-            <div className="footer-section">
-              <h3>Мы в соцсетях</h3>
-              <div className="social-links">
-                <a href="#"><i className="fab fa-telegram"></i></a>
-                <a href="#"><i className="fab fa-whatsapp"></i></a>
-                <a href="#"><i className="fab fa-vk"></i></a>
-              </div>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>© 2024 AutoJapan Pro. Все права защищены.</p>
-          </div>
-        </footer>
-      </div>
-    </Router>
-  );
-}
-
-<div className="admin-links">
-  <a href="/admin/cars" className="nav-link">
-    <i className="fas fa-cog"></i> Управление авто
-  </a>
-  <a href="/admin/upload" className="nav-link">
-    <i className="fas fa-upload"></i> Загрузка фото
-  </a>
-</div>
 
 export default App;

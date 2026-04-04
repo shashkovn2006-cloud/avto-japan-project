@@ -3,6 +3,10 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import axios from 'axios';
 import './App.css';
 import CarDetailPage from './pages/CarDetailPage';
+import MyOrdersPage from './pages/MyOrdersPage';
+import AdminOrdersPage from './pages/AdminOrdersPage';
+import { Toaster } from 'react-hot-toast';
+import { useNotifications } from './hooks/useNotifications';
 
 const API_BASE = 'http://localhost:3001';
 const AuthContext = createContext();
@@ -126,24 +130,33 @@ function HomePage() {
   );
 }
 
+// Страница каталога
 function CatalogPage() {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sorting, setSorting] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filters, setFilters] = useState({ minPrice: '', maxPrice: '', service: 'all', sortBy: 'year_desc' });
+  const [advancedFilters, setAdvancedFilters] = useState({
+    fuelType: 'all',
+    transmission: 'all',
+    bodyType: 'all',
+    minYear: '',
+    maxYear: '',
+    minMileage: '',
+    maxMileage: '',
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  // Загрузка при монтировании и при изменении фильтров
   useEffect(() => {
     fetchCars();
-  }, [filters, searchTerm]);
+  }, [filters, searchTerm, advancedFilters]);
 
   const fetchCars = async () => {
     try {
       setLoading(true);
-      
-      // Строим URL с параметрами
       let url = 'http://localhost:3001/api/cars';
       const params = new URLSearchParams();
       
@@ -153,15 +166,20 @@ function CatalogPage() {
       if (filters.service && filters.service !== 'all') params.append('service', filters.service);
       if (filters.sortBy) params.append('sortBy', filters.sortBy);
       
+      // Расширенные фильтры
+      if (advancedFilters.fuelType !== 'all') params.append('fuelType', advancedFilters.fuelType);
+      if (advancedFilters.transmission !== 'all') params.append('transmission', advancedFilters.transmission);
+      if (advancedFilters.bodyType !== 'all') params.append('bodyType', advancedFilters.bodyType);
+      if (advancedFilters.minYear) params.append('minYear', advancedFilters.minYear);
+      if (advancedFilters.maxYear) params.append('maxYear', advancedFilters.maxYear);
+      if (advancedFilters.minMileage) params.append('minMileage', advancedFilters.minMileage);
+      if (advancedFilters.maxMileage) params.append('maxMileage', advancedFilters.maxMileage);
+      
       if (params.toString()) {
         url += '?' + params.toString();
       }
       
-      console.log('Запрос к API:', url); // Для отладки
-      
       const response = await axios.get(url);
-      console.log('Получено авто:', response.data); // Для отладки
-      
       setCars(response.data);
     } catch (error) {
       console.error('Ошибка загрузки:', error);
@@ -179,8 +197,28 @@ function CatalogPage() {
   const resetFilters = () => {
     setSearchTerm('');
     setFilters({ minPrice: '', maxPrice: '', service: 'all', sortBy: 'year_desc' });
+    setAdvancedFilters({
+      fuelType: 'all',
+      transmission: 'all',
+      bodyType: 'all',
+      minYear: '',
+      maxYear: '',
+      minMileage: '',
+      maxMileage: '',
+    });
     setCurrentPage(1);
     setTimeout(() => fetchCars(), 0);
+  };
+
+  const animateSorting = () => {
+    setSorting(true);
+    setTimeout(() => setSorting(false), 500);
+  };
+
+  const handleSortChange = (sortBy) => {
+    setFilters(prev => ({ ...prev, sortBy }));
+    animateSorting();
+    setCurrentPage(1);
   };
 
   const paginatedCars = cars.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -221,7 +259,93 @@ function CatalogPage() {
           </button>
         </div>
         
-        <div className="filters">
+        <div className="filter-header">
+          <button 
+            className="btn-advanced-filters" 
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
+            <i className={`fas fa-sliders-h ${showAdvancedFilters ? 'rotated' : ''}`}></i>
+            Расширенные фильтры
+          </button>
+        </div>
+
+        {showAdvancedFilters && (
+          <div className="advanced-filters fade-in-up">
+            <div className="filter-group">
+              <label><i className="fas fa-gas-pump"></i> Тип топлива</label>
+              <select value={advancedFilters.fuelType} onChange={(e) => setAdvancedFilters({...advancedFilters, fuelType: e.target.value})}>
+                <option value="all">Все</option>
+                <option value="petrol">Бензин</option>
+                <option value="diesel">Дизель</option>
+                <option value="hybrid">Гибрид</option>
+                <option value="electric">Электро</option>
+              </select>
+            </div>
+            
+            <div className="filter-group">
+              <label><i className="fas fa-cogs"></i> Коробка передач</label>
+              <select value={advancedFilters.transmission} onChange={(e) => setAdvancedFilters({...advancedFilters, transmission: e.target.value})}>
+                <option value="all">Все</option>
+                <option value="automatic">Автомат</option>
+                <option value="manual">Механика</option>
+              </select>
+            </div>
+            
+            <div className="filter-group">
+              <label><i className="fas fa-car"></i> Тип кузова</label>
+              <select value={advancedFilters.bodyType} onChange={(e) => setAdvancedFilters({...advancedFilters, bodyType: e.target.value})}>
+                <option value="all">Все</option>
+                <option value="sedan">Седан</option>
+                <option value="suv">Внедорожник</option>
+                <option value="hatchback">Хэтчбек</option>
+                <option value="minivan">Минивэн</option>
+              </select>
+            </div>
+            
+            <div className="filter-group">
+              <label><i className="fas fa-calendar"></i> Год выпуска</label>
+              <div className="range-inputs">
+                <input type="number" placeholder="От" value={advancedFilters.minYear} onChange={(e) => setAdvancedFilters({...advancedFilters, minYear: e.target.value})} />
+                <span>-</span>
+                <input type="number" placeholder="До" value={advancedFilters.maxYear} onChange={(e) => setAdvancedFilters({...advancedFilters, maxYear: e.target.value})} />
+              </div>
+            </div>
+            
+            <div className="filter-group">
+              <label><i className="fas fa-road"></i> Пробег (км)</label>
+              <div className="range-inputs">
+                <input type="number" placeholder="От" value={advancedFilters.minMileage} onChange={(e) => setAdvancedFilters({...advancedFilters, minMileage: e.target.value})} />
+                <span>-</span>
+                <input type="number" placeholder="До" value={advancedFilters.maxMileage} onChange={(e) => setAdvancedFilters({...advancedFilters, maxMileage: e.target.value})} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="sorting-section">
+          <div className="sort-buttons">
+            <button 
+              className={`sort-btn ${filters.sortBy === 'price_asc' ? 'active' : ''}`}
+              onClick={() => handleSortChange('price_asc')}
+            >
+              <i className="fas fa-arrow-up"></i> Цена ↑
+            </button>
+            <button 
+              className={`sort-btn ${filters.sortBy === 'price_desc' ? 'active' : ''}`}
+              onClick={() => handleSortChange('price_desc')}
+            >
+              <i className="fas fa-arrow-down"></i> Цена ↓
+            </button>
+            <button 
+              className={`sort-btn ${filters.sortBy === 'year_desc' ? 'active' : ''}`}
+              onClick={() => handleSortChange('year_desc')}
+            >
+              <i className="fas fa-calendar"></i> Новые
+            </button>
+          </div>
+        </div>
+
+        <div className="basic-filters">
           <div className="filter-group">
             <label>Цена от ($)</label>
             <input type="number" name="minPrice" value={filters.minPrice} onChange={handleFilterChange} placeholder="0" />
@@ -239,16 +363,10 @@ function CatalogPage() {
               <option value="japan-partner.com">Japan Partner</option>
             </select>
           </div>
-          <div className="filter-group">
-            <label>Сортировка</label>
-            <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange}>
-              <option value="year_desc">Сначала новые</option>
-              <option value="price_asc">Сначала дешевле</option>
-              <option value="price_desc">Сначала дороже</option>
-            </select>
-          </div>
         </div>
       </div>
+
+      {sorting && <div className="sorting-overlay"><div className="sorting-spinner"></div></div>}
 
       {cars.length === 0 ? (
         <div className="container text-center">
@@ -265,9 +383,13 @@ function CatalogPage() {
               <div className="text-secondary">Страница {currentPage} из {totalPages}</div>
             </div>
 
-            <div className="cars-grid">
-              {paginatedCars.map(car => (
-                <div key={car.id} className="car-card hover-lift" onClick={() => window.location.href = `/car/${car.id}`}>
+            <div className={`cars-grid ${sorting ? 'sorting' : ''}`}>
+              {paginatedCars.map((car, index) => (
+                <div 
+                  key={car.id} 
+                  className={`car-card hover-lift fade-in-up delay-${(index % 5) + 1}`} 
+                  onClick={() => window.location.href = `/car/${car.id}`}
+                >
                   <div className="car-image">
                     {car.image ? (
                       <img src={car.image} alt={car.title} onError={(e) => {
@@ -361,7 +483,7 @@ function CalculatorPage() {
   );
 }
 
-// Админка (только для админов)
+// Админка автомобилей (только для админов)
 function AdminCarsPage() {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -401,11 +523,70 @@ function AdminCarsPage() {
   };
 
   return (
-    <div className="app"><div className="container">
-      <div className="admin-header"><h1>Управление автомобилями</h1><button className="btn-primary" onClick={() => { setEditingCar(null); setFormData({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '' }); setShowForm(true); }}>+ Добавить авто</button></div>
-      {showForm && (<div className="admin-form"><h2>{editingCar ? 'Редактировать' : 'Новый автомобиль'}</h2><form onSubmit={handleSubmit}><div className="form-grid"><input placeholder="Название" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required /><input type="number" placeholder="Цена" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required /><input placeholder="Сервис" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} required /><input type="number" placeholder="Год" value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} required /><input placeholder="Пробег" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} required /><input placeholder="Двигатель" value={formData.engine} onChange={e => setFormData({...formData, engine: e.target.value})} required /><textarea placeholder="Описание" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows="3" /></div><div className="form-buttons"><button type="submit" className="btn-accent">Сохранить</button><button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingCar(null); }}>Отмена</button></div></form></div>)}
-      {loading ? <div className="loader"></div> : (<table className="admin-table"><thead><tr><th>ID</th><th>Фото</th><th>Название</th><th>Цена</th><th>Год</th><th>Действия</th></tr></thead><tbody>{cars.map(car => (<tr key={car.id}><td>{car.id}</td><td>{car.image ? <img src={car.image} style={{width: '50px', height: '35px', objectFit: 'cover'}} /> : <i className="fas fa-car"></i>}</td><td>{car.title}</td><td>${car.price}</td><td>{car.year}</td><td><button className="btn-small" onClick={() => { setEditingCar(car); setFormData(car); setShowForm(true); }}>✏️</button><button className="btn-small btn-danger" onClick={() => handleDelete(car.id)}>🗑️</button><input type="file" accept="image/*" style={{display: 'none'}} id={`upload-${car.id}`} onChange={e => handleUploadImage(car.id, e.target.files[0])} /><button className="btn-small" onClick={() => document.getElementById(`upload-${car.id}`).click()}>📷</button></td></tr>))}</tbody></table>)}
-    </div></div>
+    <div className="app">
+      <div className="container">
+        <div className="admin-header">
+          <h1>Управление автомобилями</h1>
+          <button className="btn-primary" onClick={() => { setEditingCar(null); setFormData({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '' }); setShowForm(true); }}>
+            + Добавить авто
+          </button>
+        </div>
+        {showForm && (
+          <div className="admin-form">
+            <h2>{editingCar ? 'Редактировать' : 'Новый автомобиль'}</h2>
+            <form onSubmit={handleSubmit}>
+              <div className="form-grid">
+                <input placeholder="Название" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
+                <input type="number" placeholder="Цена" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required />
+                <input placeholder="Сервис" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} required />
+                <input type="number" placeholder="Год" value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} required />
+                <input placeholder="Пробег" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} required />
+                <input placeholder="Двигатель" value={formData.engine} onChange={e => setFormData({...formData, engine: e.target.value})} required />
+                <input placeholder="Оценка (0-5)" value={formData.auctionGrade} onChange={e => setFormData({...formData, auctionGrade: e.target.value})} />
+                <textarea placeholder="Описание" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows="3" />
+              </div>
+              <div className="form-buttons">
+                <button type="submit" className="btn-accent">Сохранить</button>
+                <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingCar(null); }}>Отмена</button>
+              </div>
+            </form>
+          </div>
+        )}
+        {loading ? <div className="loader"></div> : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Фото</th>
+                <th>Название</th>
+                <th>Цена</th>
+                <th>Год</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cars.map(car => (
+                <tr key={car.id}>
+                  <td>{car.id}</td>
+                  <td>
+                    {car.image ? <img src={car.image} style={{width: '50px', height: '35px', objectFit: 'cover'}} /> : <i className="fas fa-car"></i>}
+                  </td>
+                  <td>{car.title}</td>
+                  <td>${car.price}</td>
+                  <td>{car.year}</td>
+                  <td>
+                    <button className="btn-small" onClick={() => { setEditingCar(car); setFormData(car); setShowForm(true); }}>✏️</button>
+                    <button className="btn-small btn-danger" onClick={() => handleDelete(car.id)}>🗑️</button>
+                    <input type="file" accept="image/*" style={{display: 'none'}} id={`upload-${car.id}`} onChange={e => handleUploadImage(car.id, e.target.files[0])} />
+                    <button className="btn-small" onClick={() => document.getElementById(`upload-${car.id}`).click()}>📷</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -413,6 +594,8 @@ function AdminCarsPage() {
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  useNotifications();
 
   useEffect(() => {
     checkAuth();
@@ -443,15 +626,57 @@ function App() {
     <AuthContext.Provider value={{ user, loading, login, logout }}>
       <Router>
         <div className="app-wrapper">
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: 'var(--card-bg)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+              },
+              success: {
+                iconTheme: {
+                  primary: 'var(--success)',
+                  secondary: 'white',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: 'var(--accent)',
+                  secondary: 'white',
+                },
+              },
+            }}
+          />
           <nav className="navbar">
             <div className="nav-content">
-              <a href="/" className="logo"><i className="fas fa-car"></i>Auto<span className="text-gradient">Japan</span><span className="text-accent">Pro</span></a>
+              <a href="/" className="logo">
+                <i className="fas fa-car"></i>Auto<span className="text-gradient">Japan</span><span className="text-accent">Pro</span>
+              </a>
               <div className="nav-links">
                 <a href="/" className="nav-link">Главная</a>
                 <a href="/catalog" className="nav-link">Каталог</a>
                 <a href="/calculator" className="nav-link">Калькулятор</a>
-                {user?.role === 'admin' && <a href="/admin/cars" className="nav-link">Админка</a>}
-                {user && <a href="/favorites" className="nav-link"><i className="fas fa-heart"></i> Избранное</a>}
+                {user && user.role !== 'admin' && (
+                  <a href="/my-orders" className="nav-link">
+                    <i className="fas fa-truck"></i> Мои заказы
+                  </a>
+                )}
+                {user?.role === 'admin' && (
+                  <>
+                    <a href="/admin/cars" className="nav-link">
+                      <i className="fas fa-cog"></i> Управление авто
+                    </a>
+                    <a href="/admin/orders" className="nav-link">
+                      <i className="fas fa-clipboard-list"></i> Заказы
+                    </a>
+                  </>
+                )}
+                {user && (
+                  <a href="/favorites" className="nav-link">
+                    <i className="fas fa-heart"></i> Избранное
+                  </a>
+                )}
               </div>
               {user ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -470,20 +695,46 @@ function App() {
               <Route path="/car/:id" element={<CarDetailPage />} />
               <Route path="/calculator" element={<CalculatorPage />} />
               <Route path="/login" element={<AuthPage />} />
+              <Route path="/my-orders" element={
+                <ProtectedRoute>
+                  <MyOrdersPage />
+                </ProtectedRoute>
+              } />
               <Route path="/admin/cars" element={
                 <ProtectedRoute adminOnly={true}>
                   <AdminCarsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/orders" element={
+                <ProtectedRoute adminOnly={true}>
+                  <AdminOrdersPage />
                 </ProtectedRoute>
               } />
             </Routes>
           </main>
           <footer className="footer">
             <div className="footer-content">
-              <div className="footer-section"><h3>AutoJapan Pro</h3><p>Прямые поставки автомобилей из Японии с 2010 года</p></div>
-              <div className="footer-section"><h3>Контакты</h3><p><i className="fas fa-phone"></i> +7 (XXX) XXX-XX-XX</p><p><i className="fas fa-envelope"></i> info@autojapan.pro</p></div>
-              <div className="footer-section"><h3>Мы в соцсетях</h3><div className="social-links"><a href="#"><i className="fab fa-telegram"></i></a><a href="#"><i className="fab fa-whatsapp"></i></a><a href="#"><i className="fab fa-vk"></i></a></div></div>
+              <div className="footer-section">
+                <h3>AutoJapan Pro</h3>
+                <p>Прямые поставки автомобилей из Японии с 2010 года</p>
+              </div>
+              <div className="footer-section">
+                <h3>Контакты</h3>
+                <p><i className="fas fa-phone"></i> +7 (XXX) XXX-XX-XX</p>
+                <p><i className="fas fa-envelope"></i> info@autojapan.pro</p>
+              </div>
+              <div className="footer-section">
+                <h3>Мы в соцсетях</h3>
+                <div className="social-links">
+                  <a href="#"><i className="fab fa-telegram"></i></a>
+                  <a href="#"><i className="fab fa-whatsapp"></i></a>
+                  <a href="#"><i className="fab fa-vk"></i></a>
+                </div>
+              </div>
             </div>
-            <div className="footer-bottom"><p>© 2024 AutoJapan Pro. Все права защищены.</p></div>
+            <div className="footer-bottom">
+              <p>© 2024 AutoJapan Pro. Все права защищены.</p>
+            </div>
           </footer>
         </div>
       </Router>

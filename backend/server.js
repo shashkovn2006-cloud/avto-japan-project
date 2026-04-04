@@ -1,20 +1,32 @@
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import express from 'express';
 import cors from 'cors';
-import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
-import { createWriteStream } from 'fs';
+import pkg from 'pg';
+import fs from 'fs/promises';
 
+const { Pool } = pkg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3001;
 const JWT_SECRET = 'your-super-secret-key-change-in-production-2024';
+
+// Подключение к PostgreSQL (измените пароль если нужно)
+const pool = new Pool({
+  user: 'postgres',
+  password: '',  // Если пароль пустой
+  host: 'localhost',
+  port: 5432,
+  database: 'avto_japan_db'
+});
 
 // Middleware
 app.use(cors({
@@ -58,31 +70,10 @@ const upload = multer({
   }
 });
 
-const dbPath = path.join(__dirname, 'db.json');
-
-async function readDB() {
-  try {
-    const data = await fs.readFile(dbPath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    const initialDB = { cars: [], users: [], favorites: [], orders: [] };
-    await writeDB(initialDB);
-    return initialDB;
-  }
-}
-
-async function writeDB(data) {
-  await fs.writeFile(dbPath, JSON.stringify(data, null, 2));
-}
-
 // Middleware для проверки токена
 const authenticateToken = (req, res, next) => {
   const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
-  
-  if (!token) {
-    return res.status(401).json({ error: 'Не авторизован' });
-  }
-  
+  if (!token) return res.status(401).json({ error: 'Не авторизован' });
   try {
     const user = jwt.verify(token, JWT_SECRET);
     req.user = user;
@@ -92,110 +83,61 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-// Middleware для проверки админа
 const isAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Требуются права администратора' });
-  }
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Требуются права администратора' });
   next();
 };
 
 // ========== АВТОРИЗАЦИЯ ==========
 
-// Регистрация
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
-    const db = await readDB();
-    
-    const existingUser = db.users.find(u => u.email === email);
-    if (existingUser) {
-      return res.status(400).json({ error: 'Пользователь уже существует' });
-    }
+    const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (existingUser.rows.length > 0) return res.status(400).json({ error: 'Пользователь уже существует' });
     
     const hashedPassword = await bcrypt.hash(password, 10);
-    
-    const newUser = {
-      id: db.users.length + 1,
-      email,
-      name,
-      password: hashedPassword,
-      role: 'user',
-      createdAt: new Date().toISOString()
-    };
-    
-    db.users.push(newUser);
-    await writeDB(db);
-    
-    const token = jwt.sign({ id: newUser.id, email: newUser.email, role: newUser.role }, JWT_SECRET, { expiresIn: '7d' });
-    
+    const result = await pool.query(
+      'INSERT INTO users (email, name, password, role) VALUES ($1, $2, $3, $4) RETURNING id, email, name, role',
+      [email, name, hashedPassword, 'user']
+    );
+    const user = result.rows[0];
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
-    res.json({ 
-      success: true, 
-      user: { id: newUser.id, email: newUser.email, name: newUser.name, role: newUser.role },
-      token 
-    });
+    res.json({ success: true, user, token });
   } catch (error) {
-    console.error('Ошибка регистрации:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    database: 'JSON file'
-  });
-});
-
-// Вход
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const db = await readDB();
-    
-    const user = db.users.find(u => u.email === email);
-    if (!user) {
-      return res.status(401).json({ error: 'Неверный email или пароль' });
-    }
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = result.rows[0];
+    if (!user) return res.status(401).json({ error: 'Неверный email или пароль' });
     
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Неверный email или пароль' });
-    }
+    if (!validPassword) return res.status(401).json({ error: 'Неверный email или пароль' });
     
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    
     res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
-    res.json({ 
-      success: true, 
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
-      token 
-    });
+    res.json({ success: true, user: { id: user.id, email: user.email, name: user.name, role: user.role }, token });
   } catch (error) {
-    console.error('Ошибка входа:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Выход
 app.post('/api/auth/logout', (req, res) => {
   res.clearCookie('token');
-  res.json({ success: true, message: 'Выход выполнен' });
+  res.json({ success: true });
 });
 
-// Проверка текущего пользователя
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
-    const db = await readDB();
-    const user = db.users.find(u => u.id === req.user.id);
-    if (!user) {
-      return res.status(404).json({ error: 'Пользователь не найден' });
-    }
-    res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+    const result = await pool.query('SELECT id, email, name, role FROM users WHERE id = $1', [req.user.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Пользователь не найден' });
+    res.json({ user: result.rows[0] });
   } catch (error) {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
@@ -203,252 +145,128 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 
 // ========== API для автомобилей ==========
 
-// Получение всех автомобилей (исправленный)
 app.get('/api/cars', async (req, res) => {
   try {
-    const db = await readDB();
-    
-    let cars = [...db.cars];
-    
+    let query = 'SELECT * FROM cars';
+    const conditions = [];
+    const values = [];
+    let idx = 1;
     const { search, minPrice, maxPrice, service, sortBy } = req.query;
     
-    if (search) {
-      cars = cars.filter(car => car.title.toLowerCase().includes(search.toLowerCase()));
-    }
-    if (minPrice) {
-      cars = cars.filter(car => {
-        const price = typeof car.price === 'string' ? parseInt(car.price) : car.price;
-        return price >= parseFloat(minPrice);
-      });
-    }
-    if (maxPrice) {
-      cars = cars.filter(car => {
-        const price = typeof car.price === 'string' ? parseInt(car.price) : car.price;
-        return price <= parseFloat(maxPrice);
-      });
-    }
-    if (service && service !== 'all') {
-      cars = cars.filter(car => car.service === service);
-    }
-    if (sortBy === 'price_asc') {
-      cars.sort((a, b) => {
-        const priceA = typeof a.price === 'string' ? parseInt(a.price) : a.price;
-        const priceB = typeof b.price === 'string' ? parseInt(b.price) : b.price;
-        return priceA - priceB;
-      });
-    } else if (sortBy === 'price_desc') {
-      cars.sort((a, b) => {
-        const priceA = typeof a.price === 'string' ? parseInt(a.price) : a.price;
-        const priceB = typeof b.price === 'string' ? parseInt(b.price) : b.price;
-        return priceB - priceA;
-      });
-    } else if (sortBy === 'year_desc') {
-      cars.sort((a, b) => b.year - a.year);
-    }
+    if (search) { conditions.push(`title ILIKE $${idx}`); values.push(`%${search}%`); idx++; }
+    if (minPrice) { conditions.push(`price >= $${idx}`); values.push(parseFloat(minPrice)); idx++; }
+    if (maxPrice) { conditions.push(`price <= $${idx}`); values.push(parseFloat(maxPrice)); idx++; }
+    if (service && service !== 'all') { conditions.push(`service = $${idx}`); values.push(service); idx++; }
     
-    const carsWithImages = cars.map(car => {
-      let imageUrl = car.image;
-      if (imageUrl) {
-        // Если URL уже полный, не добавляем localhost
-        if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-          // Всё хорошо, оставляем как есть
-        } else if (imageUrl.startsWith('/uploads')) {
-          imageUrl = `http://localhost:${PORT}${imageUrl}`;
-        } else {
-          imageUrl = `http://localhost:${PORT}${imageUrl}`;
-        }
-      }
-      
-      return {
-        ...car,
-        price: typeof car.price === 'string' ? parseInt(car.price) : car.price,
-        image: imageUrl
-      };
-    });
+    if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
     
+    if (sortBy === 'price_asc') query += ' ORDER BY price ASC';
+    else if (sortBy === 'price_desc') query += ' ORDER BY price DESC';
+    else if (sortBy === 'year_desc') query += ' ORDER BY year DESC';
+    else query += ' ORDER BY id ASC';
+    
+    const result = await pool.query(query, values);
+    const carsWithImages = result.rows.map(car => ({
+      ...car,
+      image: car.image && !car.image.startsWith('http') ? `http://localhost:${PORT}${car.image}` : car.image
+    }));
     res.json(carsWithImages);
   } catch (error) {
-    console.error('Ошибка получения автомобилей:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Получение одного автомобиля (исправленный)
 app.get('/api/cars/:id', async (req, res) => {
   try {
-    const db = await readDB();
     const carId = parseInt(req.params.id);
-    const car = db.cars.find(c => c.id === carId);
-    
-    if (!car) {
-      return res.status(404).json({ error: 'Автомобиль не найден' });
-    }
-    
-    let imageUrl = car.image;
-    if (imageUrl) {
-      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        // Уже полный URL
-      } else if (imageUrl.startsWith('/uploads')) {
-        imageUrl = `http://localhost:${PORT}${imageUrl}`;
-      } else {
-        imageUrl = `http://localhost:${PORT}${imageUrl}`;
-      }
-    }
-    
-    const carWithDetails = {
-      ...car,
-      price: typeof car.price === 'string' ? parseInt(car.price) : car.price,
-      image: imageUrl,
-      images: imageUrl ? [imageUrl] : [],
-      gallery: (car.gallery || []).map(img => {
-        if (img.startsWith('http')) return img;
-        return `http://localhost:${PORT}${img}`;
-      })
-    };
-    
-    res.json(carWithDetails);
+    const result = await pool.query('SELECT * FROM cars WHERE id = $1', [carId]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Автомобиль не найден' });
+    const car = result.rows[0];
+    const galleryResult = await pool.query('SELECT image_url FROM car_gallery WHERE car_id = $1', [carId]);
+    car.image = car.image && !car.image.startsWith('http') ? `http://localhost:${PORT}${car.image}` : car.image;
+    car.gallery = galleryResult.rows.map(g => g.image_url.startsWith('http') ? g.image_url : `http://localhost:${PORT}${g.image_url}`);
+    res.json(car);
   } catch (error) {
-    console.error('Ошибка получения автомобиля:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Добавление автомобиля (только админ)
 app.post('/api/cars', authenticateToken, isAdmin, async (req, res) => {
   try {
-    const db = await readDB();
-    const newCar = {
-      id: db.cars.length > 0 ? Math.max(...db.cars.map(c => c.id)) + 1 : 1,
-      ...req.body,
-      createdAt: new Date().toISOString()
-    };
-    db.cars.push(newCar);
-    await writeDB(db);
-    res.status(201).json(newCar);
+    const { title, price, service, year, mileage, engine, auctionGrade, description, location, auctionDate, features, color } = req.body;
+    const result = await pool.query(
+      'INSERT INTO cars (title, price, service, year, mileage, engine, auction_grade, description, location, auction_date, features, color) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
+      [title, price, service, year, mileage, engine, auctionGrade, description, location, auctionDate, features || [], color]
+    );
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Обновление автомобиля (только админ)
 app.put('/api/cars/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
-    const db = await readDB();
     const carId = parseInt(req.params.id);
-    const carIndex = db.cars.findIndex(c => c.id === carId);
-    
-    if (carIndex === -1) {
-      return res.status(404).json({ error: 'Автомобиль не найден' });
-    }
-    
-    db.cars[carIndex] = { ...db.cars[carIndex], ...req.body, updatedAt: new Date().toISOString() };
-    await writeDB(db);
-    res.json(db.cars[carIndex]);
+    const { title, price, service, year, mileage, engine, auctionGrade, description, location, auctionDate, features, color } = req.body;
+    const result = await pool.query(
+      'UPDATE cars SET title=$1, price=$2, service=$3, year=$4, mileage=$5, engine=$6, auction_grade=$7, description=$8, location=$9, auction_date=$10, features=$11, color=$12, updated_at=CURRENT_TIMESTAMP WHERE id=$13 RETURNING *',
+      [title, price, service, year, mileage, engine, auctionGrade, description, location, auctionDate, features || [], color, carId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Автомобиль не найден' });
+    res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Удаление автомобиля (только админ)
 app.delete('/api/cars/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
-    const db = await readDB();
     const carId = parseInt(req.params.id);
-    const carIndex = db.cars.findIndex(c => c.id === carId);
-    
-    if (carIndex === -1) {
-      return res.status(404).json({ error: 'Автомобиль не найден' });
-    }
-    
-    db.cars.splice(carIndex, 1);
-    await writeDB(db);
+    const carFolder = path.join(__dirname, 'uploads', 'cars', String(carId));
+    try { await fs.rm(carFolder, { recursive: true, force: true }); } catch (err) {}
+    await pool.query('DELETE FROM car_gallery WHERE car_id = $1', [carId]);
+    await pool.query('DELETE FROM favorites WHERE car_id = $1', [carId]);
+    const result = await pool.query('DELETE FROM cars WHERE id = $1 RETURNING id', [carId]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Автомобиль не найден' });
     res.json({ message: 'Автомобиль удален' });
   } catch (error) {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Загрузка фото (только админ)
 app.post('/api/cars/:id/upload-main', authenticateToken, isAdmin, upload.single('image'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'Файл не загружен' });
-    }
-    
-    const db = await readDB();
+    if (!req.file) return res.status(400).json({ error: 'Файл не загружен' });
     const carId = parseInt(req.params.id);
-    const carIndex = db.cars.findIndex(c => c.id === carId);
-    
-    if (carIndex === -1) {
-      return res.status(404).json({ error: 'Автомобиль не найден' });
-    }
-    
     const imageUrl = `/uploads/cars/${carId}/${req.file.filename}`;
-    db.cars[carIndex].image = imageUrl;
-    db.cars[carIndex].updatedAt = new Date().toISOString();
-    
-    await writeDB(db);
-    
-    res.json({
-      success: true,
-      imageUrl: imageUrl,
-      fullUrl: `http://localhost:${PORT}${imageUrl}`
-    });
+    await pool.query('UPDATE cars SET image = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [imageUrl, carId]);
+    await pool.query('INSERT INTO car_gallery (car_id, image_url) VALUES ($1, $2)', [carId, imageUrl]);
+    res.json({ success: true, imageUrl, fullUrl: `http://localhost:${PORT}${imageUrl}` });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Получение списка фото
 app.get('/api/cars/:id/images', authenticateToken, isAdmin, async (req, res) => {
   try {
-    const db = await readDB();
     const carId = parseInt(req.params.id);
-    const car = db.cars.find(c => c.id === carId);
-    
-    if (!car) {
-      return res.status(404).json({ error: 'Автомобиль не найден' });
-    }
-    
-    const carFolder = path.join(__dirname, 'uploads', 'cars', carId.toString());
-    let files = [];
-    
-    try {
-      files = await fs.readdir(carFolder);
-    } catch (err) {
-      files = [];
-    }
-    
-    const images = files.map(file => ({
-      filename: file,
-      url: `/uploads/cars/${carId}/${file}`,
-      fullUrl: `http://localhost:${PORT}/uploads/cars/${carId}/${file}`,
-      isMain: car.image && car.image.includes(file)
+    const result = await pool.query('SELECT image_url FROM car_gallery WHERE car_id = $1', [carId]);
+    const carResult = await pool.query('SELECT image FROM cars WHERE id = $1', [carId]);
+    const images = result.rows.map(row => ({
+      url: row.image_url,
+      fullUrl: row.image_url.startsWith('http') ? row.image_url : `http://localhost:${PORT}${row.image_url}`,
+      isMain: carResult.rows[0]?.image === row.image_url
     }));
-    
-    res.json({ carId, uploadedFiles: images, total: images.length });
+    res.json({ uploadedFiles: images, total: images.length });
   } catch (error) {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Избранное (для авторизованных пользователей)
 app.post('/api/favorites/:carId', authenticateToken, async (req, res) => {
   try {
-    const db = await readDB();
-    const userId = req.user.id;
-    const carId = parseInt(req.params.carId);
-    
-    if (!db.favorites) db.favorites = [];
-    
-    const existing = db.favorites.find(f => f.userId === userId && f.carId === carId);
-    if (existing) {
-      return res.status(400).json({ error: 'Уже в избранном' });
-    }
-    
-    db.favorites.push({ userId, carId, createdAt: new Date().toISOString() });
-    await writeDB(db);
-    res.json({ success: true, message: 'Добавлено в избранное' });
+    await pool.query('INSERT INTO favorites (user_id, car_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [req.user.id, parseInt(req.params.carId)]);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
@@ -456,13 +274,8 @@ app.post('/api/favorites/:carId', authenticateToken, async (req, res) => {
 
 app.delete('/api/favorites/:carId', authenticateToken, async (req, res) => {
   try {
-    const db = await readDB();
-    const userId = req.user.id;
-    const carId = parseInt(req.params.carId);
-    
-    db.favorites = db.favorites.filter(f => !(f.userId === userId && f.carId === carId));
-    await writeDB(db);
-    res.json({ success: true, message: 'Удалено из избранного' });
+    await pool.query('DELETE FROM favorites WHERE user_id = $1 AND car_id = $2', [req.user.id, parseInt(req.params.carId)]);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
@@ -470,291 +283,263 @@ app.delete('/api/favorites/:carId', authenticateToken, async (req, res) => {
 
 app.get('/api/favorites', authenticateToken, async (req, res) => {
   try {
-    const db = await readDB();
-    const userId = req.user.id;
-    
-    const favoriteCars = db.favorites
-      .filter(f => f.userId === userId)
-      .map(f => db.cars.find(c => c.id === f.carId))
-      .filter(c => c);
-    
-    res.json(favoriteCars);
+    const result = await pool.query(
+      'SELECT c.* FROM cars c JOIN favorites f ON c.id = f.car_id WHERE f.user_id = $1',
+      [req.user.id]
+    );
+    res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Калькулятор (публичный)
 app.post('/api/calculate', (req, res) => {
   try {
     let price = parseFloat(req.body.price);
     let engineVolume = parseFloat(req.body.engineVolume);
     let engineType = req.body.engineType;
+    if (isNaN(price) || price <= 0) return res.status(400).json({ error: 'Укажите корректную цену' });
+    if (isNaN(engineVolume) || engineVolume <= 0) engineVolume = 2.0;
     
-    if (isNaN(price) || price <= 0) {
-      return res.status(400).json({ error: 'Укажите корректную цену' });
-    }
-    if (isNaN(engineVolume) || engineVolume <= 0) {
-      engineVolume = 2.0;
-    }
-    
-    let customsRate = 0.48;
-    let exciseRate = 0.35;
-    
-    if (engineType === 'electric') {
-      customsRate = 0.15;
-      exciseRate = 0;
-    } else if (engineType === 'hybrid') {
-      customsRate = 0.17;
-      exciseRate = engineVolume > 3.0 ? 0.20 : 0.15;
-    } else if (engineType === 'diesel') {
-      customsRate = 0.50;
-      exciseRate = 0.40;
-    }
+    let customsRate = 0.48, exciseRate = 0.35;
+    if (engineType === 'electric') { customsRate = 0.15; exciseRate = 0; }
+    else if (engineType === 'hybrid') { customsRate = 0.17; exciseRate = engineVolume > 3.0 ? 0.20 : 0.15; }
+    else if (engineType === 'diesel') { customsRate = 0.50; exciseRate = 0.40; }
     
     const customsDuty = price * customsRate;
     const exciseTax = price * exciseRate;
     const vat = (price + customsDuty + exciseTax) * 0.2;
     const processingFee = 500;
     const shipping = engineType === 'electric' ? 2000 : 1500;
-    const registration = 300;
-    const total = price + customsDuty + exciseTax + vat + processingFee + shipping + registration;
+    const total = price + customsDuty + exciseTax + vat + processingFee + shipping;
     
     res.json({
-      price: Math.round(price),
-      customs: Math.round(customsDuty),
-      excise: Math.round(exciseTax),
-      vat: Math.round(vat),
-      processingFee: processingFee,
-      shipping: shipping,
-      registration: registration,
-      total: Math.round(total)
+      price: Math.round(price), customs: Math.round(customsDuty), excise: Math.round(exciseTax),
+      vat: Math.round(vat), processingFee, shipping, total: Math.round(total)
     });
   } catch (error) {
-    console.error('Ошибка калькулятора:', error);
     res.status(500).json({ error: 'Ошибка расчёта' });
   }
 });
 
-// Статистика (исправленная)
 app.get('/api/stats', async (req, res) => {
   try {
-    const db = await readDB();
-    
-    if (db.cars.length === 0) {
-      return res.json({ 
-        totalCars: 0, 
-        message: 'Нет автомобилей',
-        averagePrice: 0,
-        minPrice: 0,
-        maxPrice: 0
-      });
-    }
-    
-    // Принудительно преобразуем цены в числа
-    const prices = db.cars.map(car => {
-      const price = typeof car.price === 'string' ? parseInt(car.price) : car.price;
-      return isNaN(price) ? 0 : price;
-    });
-    
-    const validPrices = prices.filter(p => p > 0);
-    const averagePrice = validPrices.length > 0 
-      ? Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length)
-      : 0;
-    
+    const totalCars = await pool.query('SELECT COUNT(*) FROM cars');
+    const avgPrice = await pool.query('SELECT AVG(price) FROM cars WHERE price > 0');
+    const minPrice = await pool.query('SELECT MIN(price) FROM cars WHERE price > 0');
+    const maxPrice = await pool.query('SELECT MAX(price) FROM cars');
+    const totalUsers = await pool.query('SELECT COUNT(*) FROM users');
     res.json({
-      totalCars: db.cars.length,
-      averagePrice: averagePrice,
-      minPrice: Math.min(...validPrices),
-      maxPrice: Math.max(...validPrices),
-      totalUsers: db.users?.length || 0,
-      totalFavorites: db.favorites?.length || 0,
+      totalCars: parseInt(totalCars.rows[0].count),
+      averagePrice: Math.round(parseFloat(avgPrice.rows[0].avg) || 0),
+      minPrice: parseInt(minPrice.rows[0].min) || 0,
+      maxPrice: parseInt(maxPrice.rows[0].max) || 0,
+      totalUsers: parseInt(totalUsers.rows[0].count),
       lastUpdated: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Ошибка статистики:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// ========== ИМПОРТ ФОТО (упрощённая версия без cheerio) ==========
-
-// Функция для скачивания изображения
-const downloadImage = async (url, filepath) => {
-  const axiosMod = await import('axios');
-  const axios = axiosMod.default;
-  const response = await axios({ url, method: 'GET', responseType: 'stream' });
-  return new Promise((resolve, reject) => {
-    const writer = createWriteStream(filepath);
-    response.data.pipe(writer);
-    writer.on('finish', resolve);
-    writer.on('error', reject);
-  });
-};
-
-// API: Импорт фото по URL страницы
-app.post('/api/admin/import-images', authenticateToken, isAdmin, async (req, res) => {
-  try {
-    const axiosMod = await import('axios');
-    const axios = axiosMod.default;
-    
-    const { pageUrl, carId } = req.body;
-    
-    if (!pageUrl || !carId) {
-      return res.status(400).json({ error: 'Укажите URL страницы и ID автомобиля' });
-    }
-    
-    // Скачиваем HTML страницы
-    const { data: html } = await axios.get(pageUrl);
-    
-    // Простой поиск всех URL изображений через регулярное выражение
-    const imgRegex = /https?:\/\/[^\s<>"'\)]+\.(jpg|jpeg|png|gif|webp)/gi;
-    const foundImages = html.match(imgRegex) || [];
-    
-    // Фильтруем дубликаты и убираем мусор
-    const uniqueImages = [...new Set(foundImages)];
-    const filteredImages = uniqueImages.filter(img => {
-      return !img.includes('icon') && 
-             !img.includes('logo') && 
-             !img.includes('avatar') &&
-             !img.includes('data:image');
-    });
-    
-    const imagesToImport = filteredImages.slice(0, 20);
-    
-    if (imagesToImport.length === 0) {
-      return res.json({ success: false, message: 'Изображения не найдены на странице' });
-    }
-    
-    // Создаём папку для автомобиля
-    const carFolder = path.join(__dirname, 'uploads', 'cars', String(carId));
-    await fs.mkdir(carFolder, { recursive: true });
-    
-    // Скачиваем изображения
-    const downloaded = [];
-    for (let i = 0; i < imagesToImport.length; i++) {
-      const imgUrl = imagesToImport[i];
-      const ext = path.extname(imgUrl.split('?')[0]) || '.jpg';
-      const filename = `imported-${Date.now()}-${i}${ext}`;
-      const filepath = path.join(carFolder, filename);
-      
-      try {
-        await downloadImage(imgUrl, filepath);
-        const imageUrl = `/uploads/cars/${carId}/${filename}`;
-        downloaded.push(imageUrl);
-      } catch (err) {
-        console.error(`Ошибка загрузки:`, err.message);
-      }
-    }
-    
-    // Обновляем базу данных
-    const db = await readDB();
-    const carIndex = db.cars.findIndex(c => c.id === parseInt(carId));
-    
-    if (carIndex !== -1) {
-      if (!db.cars[carIndex].gallery) db.cars[carIndex].gallery = [];
-      
-      const galleryImages = downloaded.slice(0, 10);
-      db.cars[carIndex].gallery.push(...galleryImages);
-      
-      if (!db.cars[carIndex].image && downloaded[0]) {
-        db.cars[carIndex].image = downloaded[0];
-      }
-      
-      db.cars[carIndex].updatedAt = new Date().toISOString();
-      await writeDB(db);
-    }
-    
-    res.json({
-      success: true,
-      message: `Импортировано ${downloaded.length} фото из ${imagesToImport.length}`,
-      imported: downloaded.map(img => `http://localhost:${PORT}${img}`)
-    });
-    
-  } catch (error) {
-    console.error('Ошибка импорта:', error);
-    res.status(500).json({ error: 'Ошибка импорта: ' + error.message });
-  }
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString(), database: 'PostgreSQL' });
 });
 
-// API: Предпросмотр изображений
-app.post('/api/admin/preview-images', authenticateToken, isAdmin, async (req, res) => {
-  try {
-    const axiosMod = await import('axios');
-    const axios = axiosMod.default;
-    
-    const { pageUrl } = req.body;
-    
-    if (!pageUrl) {
-      return res.status(400).json({ error: 'Укажите URL страницы' });
-    }
-    
-    const { data: html } = await axios.get(pageUrl);
-    
-    const imgRegex = /https?:\/\/[^\s<>"'\)]+\.(jpg|jpeg|png|gif|webp)/gi;
-    const foundImages = html.match(imgRegex) || [];
-    const uniqueImages = [...new Set(foundImages)];
-    const filteredImages = uniqueImages.filter(img => {
-      return !img.includes('icon') && !img.includes('logo') && !img.includes('avatar');
-    });
-    
-    res.json({
-      success: true,
-      images: filteredImages.slice(0, 30),
-      total: filteredImages.length
-    });
-    
-  } catch (error) {
-    res.status(500).json({ error: 'Ошибка получения изображений' });
-  }
-});
-
-// Инициализация базы данных
-async function initDatabase() {
-  try {
-    const db = await readDB();
-    
-    if (db.cars.length === 0) {
-      db.cars = [
-        { id: 1, title: "Toyota Crown 2020", price: 18500, service: "carfromjapan.com", year: 2020, mileage: "45,000 km", engine: "2.5L Hybrid", image: "https://images.unsplash.com/photo-1599912027806-cfec9f5944b6?w=500&h=300&fit=crop", auctionGrade: 4.5, description: "Toyota Crown 2020 года в идеальном состоянии.", location: "Tokyo, Japan", auctionDate: "2024-01-15", features: ["Автоматическая коробка", "Кожаный салон"], color: "Черный", createdAt: new Date().toISOString() },
-        { id: 2, title: "Honda Fit 2019", price: 12500, service: "beforward.jp", year: 2019, mileage: "32,000 km", engine: "1.5L Petrol", image: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=500&h=300&fit=crop", auctionGrade: 4.0, description: "Экономичный и практичный Honda Fit.", location: "Osaka, Japan", auctionDate: "2024-01-20", features: ["Вариатор", "Климат-контроль"], color: "Белый", createdAt: new Date().toISOString() },
-        { id: 3, title: "Nissan X-Trail 2021", price: 22500, service: "japan-partner.com", year: 2021, mileage: "28,000 km", engine: "2.0L Turbo", image: "https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=500&h=300&fit=crop", auctionGrade: 4.5, description: "Nissan X-Trail 2021 года, полный привод.", location: "Nagoya, Japan", auctionDate: "2024-01-25", features: ["Полный привод", "Панорамная крыша"], color: "Серый", createdAt: new Date().toISOString() }
-      ];
-    }
-    
-    // Создание админа по умолчанию, если нет пользователей
-    if (db.users.length === 0) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-      db.users.push({
-        id: 1,
-        email: 'admin@autojapan.pro',
-        name: 'Администратор',
-        password: hashedPassword,
-        role: 'admin',
-        createdAt: new Date().toISOString()
-      });
-      db.users.push({
-        id: 2,
-        email: 'user@autojapan.pro',
-        name: 'Тестовый пользователь',
-        password: hashedPassword,
-        role: 'user',
-        createdAt: new Date().toISOString()
-      });
-    }
-    
-    await writeDB(db);
-    console.log('✅ База данных инициализирована');
-    console.log('👑 Админ: admin@autojapan.pro / admin123');
-    console.log('👤 Пользователь: user@autojapan.pro / admin123');
-  } catch (error) {
-    console.error('❌ Ошибка инициализации:', error);
-  }
+async function initUploads() {
+  await fs.mkdir(path.join(__dirname, 'uploads'), { recursive: true });
+  console.log('✅ Папка uploads готова');
 }
 
-app.listen(PORT, async () => {
-  await fs.mkdir(path.join(__dirname, 'uploads'), { recursive: true });
-  await initDatabase();
+// ========== ДОСТАВКА И ЗАКАЗЫ ==========
+
+// Создание заказа на доставку
+app.post('/api/delivery/create', authenticateToken, async (req, res) => {
+  try {
+    const { 
+      car_id, customer_name, customer_phone, customer_email, 
+      customer_city, customer_address, delivery_type, comment 
+    } = req.body;
+    
+    const user_id = req.user.id;
+    
+    // Получаем информацию об автомобиле
+    const carResult = await pool.query('SELECT price FROM cars WHERE id = $1', [car_id]);
+    if (carResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Автомобиль не найден' });
+    }
+    
+    // Рассчитываем стоимость доставки
+    let delivery_price = 0;
+    if (delivery_type === 'standard') delivery_price = 1500;
+    else if (delivery_type === 'express') delivery_price = 2500;
+    else if (delivery_type === 'air') delivery_price = 5000;
+    
+    const car_price = carResult.rows[0].price;
+    const total_price = car_price + delivery_price;
+    
+    const result = await pool.query(
+      `INSERT INTO delivery_orders (car_id, user_id, customer_name, customer_phone, customer_email, 
+       customer_city, customer_address, delivery_type, delivery_price, total_price, comment, status) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending') RETURNING *`,
+      [car_id, user_id, customer_name, customer_phone, customer_email, 
+       customer_city, customer_address, delivery_type, delivery_price, total_price, comment]
+    );
+    
+    res.json({ success: true, order: result.rows[0] });
+  } catch (error) {
+    console.error('Ошибка создания заказа:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Получение заказов пользователя
+app.get('/api/delivery/my-orders', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT o.*, c.title as car_title, c.image as car_image 
+       FROM delivery_orders o 
+       JOIN cars c ON o.car_id = c.id 
+       WHERE o.user_id = $1 
+       ORDER BY o.created_at DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Ошибка получения заказов:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Получение всех заказов (только для админа)
+app.get('/api/delivery/all-orders', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT o.*, c.title as car_title, u.name as user_name, u.email as user_email 
+       FROM delivery_orders o 
+       JOIN cars c ON o.car_id = c.id 
+       JOIN users u ON o.user_id = u.id 
+       ORDER BY o.created_at DESC`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Ошибка получения заказов:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Обновление статуса заказа (только для админа)
+app.put('/api/delivery/update-status/:id', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const { status } = req.body;
+    
+    const result = await pool.query(
+      `UPDATE delivery_orders SET status = $1, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $2 RETURNING *`,
+      [status, orderId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Заказ не найден' });
+    }
+    
+    res.json({ success: true, order: result.rows[0] });
+  } catch (error) {
+    console.error('Ошибка обновления статуса:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// После создания app:
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:3000',
+    credentials: true
+  }
+});
+
+// Хранилище активных соединений
+const userSockets = new Map();
+
+// WebSocket подключения
+io.on('connection', (socket) => {
+  console.log('Новое подключение:', socket.id);
+  
+  socket.on('register', (userId) => {
+    userSockets.set(userId, socket.id);
+    console.log(`Пользователь ${userId} зарегистрирован`);
+  });
+  
+  socket.on('disconnect', () => {
+    for (let [userId, socketId] of userSockets.entries()) {
+      if (socketId === socket.id) {
+        userSockets.delete(userId);
+        break;
+      }
+    }
+  });
+});
+
+// Функция отправки уведомления
+export const sendNotification = (userId, title, message, type = 'info') => {
+  const socketId = userSockets.get(userId);
+  if (socketId) {
+    io.to(socketId).emit('notification', { title, message, type });
+  }
+};
+
+// Обновите эндпоинт обновления статуса заказа:
+app.put('/api/delivery/update-status/:id', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const { status } = req.body;
+    
+    // Получаем информацию о заказе для уведомления
+    const orderInfo = await pool.query(
+      'SELECT user_id, car_id FROM delivery_orders WHERE id = $1',
+      [orderId]
+    );
+    
+    const result = await pool.query(
+      `UPDATE delivery_orders SET status = $1, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $2 RETURNING *`,
+      [status, orderId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Заказ не найден' });
+    }
+    
+    // Отправляем уведомление пользователю
+    const statusMessages = {
+      'processing': { title: 'Заказ в обработке', message: 'Ваш заказ принят и обрабатывается' },
+      'shipped': { title: 'Заказ отправлен', message: 'Ваш заказ отправлен. Ожидайте доставку' },
+      'delivered': { title: 'Заказ доставлен', message: 'Ваш заказ успешно доставлен! Спасибо за покупку' },
+      'cancelled': { title: 'Заказ отменён', message: 'Ваш заказ был отменён' }
+    };
+    
+    if (statusMessages[status]) {
+      sendNotification(
+        orderInfo.rows[0].user_id,
+        statusMessages[status].title,
+        statusMessages[status].message,
+        status === 'cancelled' ? 'error' : 'success'
+      );
+    }
+    
+    res.json({ success: true, order: result.rows[0] });
+  } catch (error) {
+    console.error('Ошибка обновления статуса:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// В конце файла замените app.listen на server.listen:
+server.listen(PORT, async () => {
+  await initUploads();
   console.log(`🚗 Сервер запущен на http://localhost:${PORT}`);
-  console.log(`🔐 Авторизация: http://localhost:${PORT}/api/auth/login`);
+  console.log(`🗄️ База данных: PostgreSQL`);
+  console.log(`🔌 WebSocket сервер запущен`);
 });

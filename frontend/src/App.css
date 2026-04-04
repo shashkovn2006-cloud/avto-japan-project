@@ -1258,3 +1258,694 @@ main {
 .image-placeholder-large i {
   font-size: 80px;
 }
+
+/* ========== НОВЫЕ АНИМАЦИИ ========== */
+
+/* Плавное появление элементов при скролле */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* Задержки для последовательной анимации карточек */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }
+
+/* 3D эффект для карточек */
+.car-card {
+  transform-style: preserve-3d;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.car-card:hover {
+  transform: translateY(-10px) rotateX(3deg);
+  box-shadow: 0 30px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Пульсация для кнопок */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 107, 107, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 107, 0);
+  }
+}
+
+.btn-accent:active {
+  animation: pulse 0.3s ease-out;
+}
+
+/* Эффект стекла для модальных окон */
+.glass-effect {
+  background: rgba(34, 40, 49, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Скелетон загрузки */
+.skeleton {
+  background: linear-gradient(90deg, var(--card-bg) 25%, rgba(255, 255, 255, 0.1) 50%, var(--card-bg) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 10px;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-card {
+  height: 350px;
+  width: 100%;
+  border-radius: 20px;
+}
+
+.skeleton-image {
+  height: 200px;
+  width: 100%;
+  border-radius: 20px 20px 0 0;
+}
+
+.skeleton-text {
+  height: 20px;
+  width: 80%;
+  margin: 15px auto;
+}
+
+/* Анимация для уведомлений */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Эффект партиклов при добавлении в избранное */
+@keyframes heartBurst {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.heart-animation {
+  animation: heartBurst 0.5s ease-out;
+  position: absolute;
+}
+
+/* Плавный скролл */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Эффект наведения на кнопки */
+.btn-primary, .btn-secondary, .btn-accent {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::after, .btn-secondary::after, .btn-accent::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.5s, height 0.5s;
+}
+
+.btn-primary:active::after, .btn-secondary:active::after, .btn-accent:active::after {
+  width: 200px;
+  height: 200px;
+}
+
+/* Анимация для фильтров */
+.filter-group select, .filter-group input {
+  transition: all 0.3s ease;
+}
+
+.filter-group select:focus, .filter-group input:focus {
+  transform: scale(1.02);
+}
+
+/* Анимация для картинок в галерее */
+.thumbnail {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.thumbnail:hover {
+  transform: scale(1.1) rotate(2deg);
+}
+
+/* Эффект появления модального окна */
+.delivery-modal {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.delivery-modal-content {
+  animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.filter-header {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.btn-advanced-filters {
+  background: transparent;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  padding: 10px 25px;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.btn-advanced-filters:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-advanced-filters i.rotated {
+  transform: rotate(180deg);
+  transition: transform 0.3s;
+}
+
+.advanced-filters {
+  margin-top: 20px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.range-inputs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.range-inputs input {
+  width: 100px;
+  padding: 8px;
+}
+
+.btn-reset-filters {
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-reset-filters:hover {
+  background: var(--accent);
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .advanced-filters {
+    grid-template-columns: 1fr;
+  }
+  
+  .range-inputs {
+    flex-direction: column;
+  }
+  
+  .range-inputs input {
+    width: 100%;
+  }
+}
+
+.sorting-section {
+  margin-bottom: 20px;
+}
+
+.sort-buttons {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.sort-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 25px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-btn:hover {
+  background: rgba(255, 107, 107, 0.3);
+  transform: translateY(-2px);
+}
+
+.sort-btn.active {
+  background: var(--gradient-accent);
+  color: white;
+  box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+}
+
+.sorting-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.sorting-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Анимация для карточек при сортировке */
+.cars-grid {
+  transition: all 0.3s ease;
+}
+
+.car-card {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.car-card.sorting {
+  transform: scale(0.95);
+  opacity: 0.5;
+}
+/* ========== НОВЫЕ СТИЛИ ДЛЯ ПОИСКА И ФИЛЬТРОВ ========== */
+
+/* Контейнер поиска */
+.search-container {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.search-container input {
+  flex: 1;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 2px solid rgba(255, 107, 107, 0.2);
+  border-radius: 50px;
+  font-size: 16px;
+  color: white;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.search-container input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.05) 100%);
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+  transform: translateY(-2px);
+}
+
+.search-container input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+/* Кнопки поиска */
+.search-container .btn-accent {
+  padding: 16px 35px;
+  background: var(--gradient-accent);
+  border: none;
+  border-radius: 50px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.search-container .btn-accent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+}
+
+.search-container .btn-secondary {
+  padding: 16px 35px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  backdrop-filter: blur(10px);
+}
+
+.search-container .btn-secondary:hover {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* Блок фильтров */
+.filters {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 20px;
+  border-radius: 20px;
+  margin-top: 10px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 150px;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.5px;
+}
+
+.filter-group label i {
+  margin-right: 8px;
+  color: var(--accent);
+}
+
+.filter-group input,
+.filter-group select {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 14px;
+  color: white;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.filter-group input:hover,
+.filter-group select:hover {
+  border-color: rgba(255, 107, 107, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 15px rgba(255, 107, 107, 0.2);
+}
+
+.filter-group select option {
+  background: var(--card-bg);
+  color: white;
+}
+
+/* Кнопка расширенных фильтров */
+.filter-header {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.btn-advanced-filters {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%);
+  border: 2px solid rgba(255, 107, 107, 0.3);
+  color: var(--accent);
+  padding: 12px 30px;
+  border-radius: 40px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-advanced-filters:hover {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(255, 107, 107, 0.2);
+}
+
+.btn-advanced-filters i.rotated {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+
+/* Панель расширенных фильтров */
+.advanced-filters {
+  margin-top: 20px;
+  padding: 25px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-radius: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Диапазоны */
+.range-inputs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.range-inputs input {
+  width: 100px;
+  padding: 10px;
+  text-align: center;
+}
+
+.range-inputs span {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+/* Базовые фильтры */
+.basic-filters {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Сортировка */
+.sorting-section {
+  margin: 25px 0;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 60px;
+  backdrop-filter: blur(10px);
+}
+
+.sort-buttons {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.sort-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 10px 24px;
+  border-radius: 40px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sort-btn:hover {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.sort-btn.active {
+  background: var(--gradient-accent);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+}
+
+/* Результаты поиска */
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 15px 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-radius: 15px;
+  border-left: 4px solid var(--accent);
+}
+
+.results-header div:first-child {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.results-header .text-accent {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .search-container {
+    flex-direction: column;
+  }
+  
+  .search-container button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .filters {
+    flex-direction: column;
+  }
+  
+  .filter-group {
+    width: 100%;
+  }
+  
+  .advanced-filters {
+    grid-template-columns: 1fr;
+  }
+  
+  .range-inputs {
+    flex-direction: column;
+  }
+  
+  .range-inputs input {
+    width: 100%;
+  }
+  
+  .sort-buttons {
+    flex-direction: column;
+  }
+  
+  .sort-btn {
+    justify-content: center;
+  }
+  
+  .results-header {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+}
+
+/* Анимация появления */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}

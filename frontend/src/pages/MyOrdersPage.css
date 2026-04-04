@@ -1,0 +1,143 @@
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.order-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.order-id {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.order-date {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.order-status {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.status-pending { background: rgba(253, 203, 110, 0.2); color: var(--warning); }
+.status-processing { background: rgba(15, 76, 117, 0.2); color: #4a90e2; }
+.status-shipped { background: rgba(0, 184, 148, 0.2); color: var(--success); }
+.status-delivered { background: rgba(0, 184, 148, 0.3); color: var(--success); }
+.status-cancelled { background: rgba(255, 107, 107, 0.2); color: var(--accent); }
+
+.order-body {
+  padding: 20px;
+}
+
+.order-car {
+  display: flex;
+  gap: 15px;
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.order-car img {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.order-car-info h3 {
+  margin-bottom: 5px;
+  color: white;
+}
+
+.order-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.detail-group h4 {
+  margin-bottom: 10px;
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.detail-group p {
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.order-total {
+  display: flex;
+  justify-content: flex-end;
+  gap: 20px;
+  padding-top: 15px;
+  border-top: 2px solid var(--border-color);
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.order-total span:last-child {
+  color: var(--success);
+}
+
+.no-orders {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.no-orders i {
+  font-size: 80px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.no-orders h3 {
+  margin-bottom: 10px;
+}
+
+.no-orders p {
+  color: var(--text-secondary);
+  margin-bottom: 25px;
+}
+
+@media (max-width: 768px) {
+  .order-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .order-car {
+    flex-direction: column;
+  }
+  
+  .order-car img {
+    width: 100%;
+    height: 150px;
+  }
+  
+  .order-details {
+    grid-template-columns: 1fr;
+  }
+}

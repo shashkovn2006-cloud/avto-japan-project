@@ -1,0 +1,129 @@
+.admin-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.admin-order-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.admin-order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-order-header .order-id {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.admin-order-header .order-user {
+  color: var(--success);
+}
+
+.admin-order-header .order-date {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.admin-order-body {
+  padding: 20px;
+}
+
+.order-car {
+  display: flex;
+  gap: 15px;
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.order-car img {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.order-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.info-group strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--accent);
+}
+
+.info-group p {
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.order-status-control {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+}
+
+.current-status {
+  padding: 8px 15px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.status-update {
+  display: flex;
+  gap: 10px;
+}
+
+.status-update select {
+  padding: 8px 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: white;
+}
+
+.btn-small {
+  padding: 8px 20px;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .order-car {
+    flex-direction: column;
+  }
+  
+  .order-car img {
+    width: 100%;
+    height: 150px;
+  }
+  
+  .order-status-control {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .status-update {
+    flex-direction: column;
+  }
+}

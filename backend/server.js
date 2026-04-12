@@ -22,11 +22,10 @@ const JWT_SECRET = 'your-super-secret-key-change-in-production-2024';
 
 // Подключение к PostgreSQL (измените пароль если нужно)
 const pool = new Pool({
-  user: 'postgres',
-  password: '',  // Если пароль пустой
-  host: 'localhost',
-  port: 5432,
-  database: 'avto_japan_db'
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 // Middleware

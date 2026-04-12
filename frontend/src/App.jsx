@@ -33,11 +33,15 @@ function AuthPage() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+    setLoading(true);
     
     try {
       const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
@@ -48,54 +52,117 @@ function AuthPage() {
       });
       
       if (response.data.success) {
-        login(response.data.user);
-        window.location.href = '/';
+        if (isLogin) {
+          login(response.data.user);
+          window.location.href = '/';
+        } else {
+          setSuccess('Регистрация успешна! Теперь войдите в аккаунт.');
+          setIsLogin(true);
+          setEmail('');
+          setPassword('');
+          setName('');
+        }
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Ошибка');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="app">
-      <div className="container" style={{ maxWidth: '500px', margin: '100px auto' }}>
-        <h2 style={{ textAlign: 'center' }}>{isLogin ? 'Вход' : 'Регистрация'}</h2>
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <div className="logo-icon">
+            <i className="fas fa-car"></i>
+          </div>
+          <h2>{isLogin ? 'Добро пожаловать!' : 'Создать аккаунт'}</h2>
+          <p>{isLogin ? 'Войдите, чтобы продолжить' : 'Зарегистрируйтесь для покупки авто'}</p>
+        </div>
         
-        {error && <div style={{ background: 'rgba(255,107,107,0.2)', padding: '10px', borderRadius: '10px', marginBottom: '20px', color: 'var(--accent)' }}>{error}</div>}
+        {error && (
+          <div className="auth-error">
+            <i className="fas fa-exclamation-triangle"></i>
+            {error}
+          </div>
+        )}
         
-        <form onSubmit={handleSubmit}>
+        {success && (
+          <div className="auth-success">
+            <i className="fas fa-check-circle"></i>
+            {success}
+          </div>
+        )}
+        
+        <form onSubmit={handleSubmit} className="auth-form">
           {!isLogin && (
-            <div className="input-group">
-              <label>Имя</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+            <div className="auth-input-group">
+              <label><i className="fas fa-user"></i> Имя</label>
+              <input 
+                type="text" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                placeholder="Введите ваше имя"
+                required 
+              />
             </div>
           )}
-          <div className="input-group">
-            <label>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          
+          <div className="auth-input-group">
+            <label><i className="fas fa-envelope"></i> Email</label>
+            <input 
+              type="email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              placeholder="example@mail.com"
+              required 
+            />
           </div>
-          <div className="input-group">
-            <label>Пароль</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          
+          <div className="auth-input-group">
+            <label><i className="fas fa-lock"></i> Пароль</label>
+            <input 
+              type="password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              placeholder="••••••••"
+              required 
+            />
           </div>
-          <button type="submit" className="btn-primary" style={{ width: '100%' }}>
-            {isLogin ? 'Войти' : 'Зарегистрироваться'}
+          
+          <button type="submit" className="auth-btn" disabled={loading}>
+            {loading ? (
+              <><i className="fas fa-spinner fa-spin"></i> Загрузка...</>
+            ) : (
+              <><i className={`fas ${isLogin ? 'fa-sign-in-alt' : 'fa-user-plus'}`}></i> {isLogin ? 'Войти' : 'Зарегистрироваться'}</>
+            )}
           </button>
         </form>
         
-        <p style={{ textAlign: 'center', marginTop: '20px' }}>
-          {isLogin ? 'Нет аккаунта? ' : 'Уже есть аккаунт? '}
-          <button onClick={() => setIsLogin(!isLogin)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer' }}>
-            {isLogin ? 'Зарегистрироваться' : 'Войти'}
-          </button>
-        </p>
-        
-        <div style={{ marginTop: '30px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
-            <strong>Тестовые аккаунты:</strong><br />
-            Админ: admin@autojapan.pro / admin123<br />
-            Пользователь: user@autojapan.pro / admin123
+        <div className="auth-switch">
+          <p>
+            {isLogin ? 'Нет аккаунта? ' : 'Уже есть аккаунт? '}
+            <button onClick={() => {
+              setIsLogin(!isLogin);
+              setError('');
+              setSuccess('');
+            }}>
+              {isLogin ? 'Зарегистрироваться' : 'Войти'}
+            </button>
           </p>
+        </div>
+        
+        <div className="auth-test-accounts">
+          <p><i className="fas fa-info-circle"></i> Тестовые аккаунты:</p>
+          <div className="accounts-list">
+            <div className="account-item">
+              <span>👑 Админ:</span> admin@auto.pro / 1
+            </div>
+            <div className="account-item">
+              <span>👤 Пользователь:</span> user@auto.pro / 2
+            </div>
+          </div>
         </div>
       </div>
     </div>

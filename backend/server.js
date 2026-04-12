@@ -11,6 +11,7 @@ import cookieParser from 'cookie-parser';
 import pkg from 'pg';
 import fs from 'fs/promises';
 
+
 const { Pool } = pkg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -535,6 +536,16 @@ app.put('/api/delivery/update-status/:id', authenticateToken, isAdmin, async (re
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
+
+// Раздача статики frontend (после всех API-маршрутов)
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Все остальные запросы отдаём index.html (для React Router)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+
+
 
 // В конце файла замените app.listen на server.listen:
 server.listen(PORT, async () => {

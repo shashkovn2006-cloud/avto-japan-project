@@ -109,3 +109,424 @@
     grid-column: span 1;
   }
 }
+
+/* DeliveryForm.css - улучшенные стили */
+
+/* Модальное окно */
+.delivery-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Контент модального окна */
+.delivery-modal-content {
+  background: linear-gradient(135deg, rgba(34, 40, 49, 0.98) 0%, rgba(26, 26, 46, 0.98) 100%);
+  border-radius: 32px;
+  padding: 35px;
+  max-width: 750px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+  animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Кнопка закрытия */
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 25px;
+  font-size: 32px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.modal-close:hover {
+  color: var(--accent);
+  background: rgba(255, 107, 107, 0.1);
+  transform: rotate(90deg);
+}
+
+/* Заголовок */
+.delivery-modal-content h2 {
+  font-size: 28px;
+  margin-bottom: 25px;
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.delivery-modal-content h2 i {
+  background: none;
+  -webkit-text-fill-color: var(--accent);
+}
+
+/* Информация об автомобиле */
+.delivery-car-info {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-radius: 20px;
+  margin-bottom: 25px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.delivery-car-info img {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 15px;
+  border: 2px solid rgba(255, 107, 107, 0.3);
+}
+
+.delivery-car-info h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: white;
+}
+
+.delivery-car-info p {
+  color: var(--success);
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* Форма */
+.delivery-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 25px;
+}
+
+.delivery-form-grid .full-width {
+  grid-column: span 2;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.input-group label i {
+  margin-right: 8px;
+  color: var(--accent);
+}
+
+.input-group input,
+.input-group select,
+.input-group textarea {
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  font-size: 14px;
+  color: white;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.input-group input:focus,
+.input-group select:focus,
+.input-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 15px rgba(255, 107, 107, 0.2);
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.input-group input:hover,
+.input-group select:hover,
+.input-group textarea:hover {
+  border-color: rgba(255, 107, 107, 0.4);
+}
+
+.input-group input::placeholder,
+.input-group textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.input-group select option {
+  background: var(--card-bg);
+  color: white;
+}
+
+.input-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Итого */
+.delivery-total {
+  background: linear-gradient(135deg, rgba(0, 184, 148, 0.1) 0%, rgba(0, 184, 148, 0.05) 100%);
+  border-radius: 20px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid rgba(0, 184, 148, 0.2);
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 15px;
+}
+
+.total-row:last-child {
+  border-bottom: none;
+}
+
+.total-row span:first-child {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.total-row span:last-child {
+  font-weight: 600;
+  color: white;
+}
+
+.grand-total {
+  margin-top: 10px;
+  padding-top: 15px;
+  border-top: 2px solid var(--success);
+  font-size: 20px;
+}
+
+.grand-total span:first-child {
+  color: white;
+  font-weight: bold;
+}
+
+.grand-total span:last-child {
+  color: var(--success);
+  font-size: 24px;
+}
+
+/* Сообщения */
+.delivery-message {
+  padding: 14px 18px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.delivery-message.success {
+  background: rgba(0, 184, 148, 0.15);
+  border-left: 4px solid var(--success);
+  color: var(--success);
+}
+
+.delivery-message.error {
+  background: rgba(255, 107, 107, 0.15);
+  border-left: 4px solid var(--accent);
+  color: var(--accent);
+}
+
+/* Кнопки */
+.delivery-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  margin-top: 25px;
+}
+
+.delivery-buttons button {
+  padding: 12px 28px;
+  border-radius: 40px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.delivery-buttons .btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.delivery-buttons .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.delivery-buttons .btn-accent {
+  background: var(--gradient-accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delivery-buttons .btn-accent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+}
+
+.delivery-buttons .btn-accent:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Стили для выбора типа доставки */
+.delivery-type-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.delivery-type-option:hover {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.delivery-type-option input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.delivery-type-option label {
+  flex: 1;
+  cursor: pointer;
+  margin: 0;
+}
+
+.delivery-type-price {
+  color: var(--success);
+  font-weight: bold;
+}
+
+/* Адаптивность */
+@media (max-width: 680px) {
+  .delivery-modal-content {
+    padding: 25px;
+    width: 95%;
+  }
+  
+  .delivery-form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .delivery-form-grid .full-width {
+    grid-column: span 1;
+  }
+  
+  .delivery-car-info {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .delivery-car-info img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+  }
+  
+  .delivery-buttons {
+    flex-direction: column;
+  }
+  
+  .delivery-buttons button {
+    width: 100%;
+  }
+  
+  .grand-total span:last-child {
+    font-size: 20px;
+  }
+  
+  .delivery-modal-content h2 {
+    font-size: 22px;
+  }
+}
+
+/* Стили для скроллбара */
+.delivery-modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.delivery-modal-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.delivery-modal-content::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 10px;
+}
+
+.delivery-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #ff8e8e;
+}

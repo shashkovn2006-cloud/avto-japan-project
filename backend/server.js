@@ -166,11 +166,12 @@ app.get('/api/cars', async (req, res) => {
     const result = await pool.query(query, values);
     const carsWithImages = result.rows.map(car => ({
       ...car,
-      image: car.image && !car.image.startsWith('http') ? `http://localhost:${PORT}${car.image}` : car.image
+      image: car.image && !car.image.startsWith('http') ? `http://94.232.42.162:3001${car.image}` : car.image
     }));
     res.json(carsWithImages);
   } catch (error) {
-    res.status(500).json({ error: 'Ошибка сервера' });
+    console.error('Ошибка получения автомобилей:', error);
+    res.status(500).json({ error: 'Ошибка сервера', details: error.message });
   }
 });
 

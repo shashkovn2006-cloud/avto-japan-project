@@ -17,7 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3002;
+const PORT = 3001;
 const JWT_SECRET = 'your-super-secret-key-change-in-production-2024';
 
 // Подключение к PostgreSQL (измените пароль если нужно)

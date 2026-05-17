@@ -147,6 +147,9 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 
 app.get('/api/cars', async (req, res) => {
   try {
+    console.log('1. Запрос получен');
+    console.log('2. Параметры запроса:', req.query);
+    
     let query = 'SELECT * FROM cars';
     const conditions = [];
     const values = [];
@@ -165,15 +168,25 @@ app.get('/api/cars', async (req, res) => {
     else if (sortBy === 'year_desc') query += ' ORDER BY year DESC';
     else query += ' ORDER BY id ASC';
     
+    console.log('3. SQL запрос:', query);
+    console.log('4. Значения:', values);
+    
+    console.log('5. Выполняем pool.query...');
     const result = await pool.query(query, values);
+    console.log('6. Результат получен, строк:', result.rows.length);
+    
     const carsWithImages = result.rows.map(car => ({
       ...car,
-      image: car.image && !car.image.startsWith('http') ? `http://${SERVER_IP}:${PORT}${car.image}` : car.image
+      image: car.image && !car.image.startsWith('http') ? `http://94.232.42.162:3001${car.image}` : car.image
     }));
+    
+    console.log('7. Отправляем ответ');
     res.json(carsWithImages);
   } catch (error) {
-    console.error('Ошибка получения автомобилей:', error);
-    res.status(500).json({ error: 'Ошибка сервера', details: error.message });
+    console.error('ОШИБКА В /api/cars:', error);
+    console.error('Сообщение:', error.message);
+    console.error('Стек:', error.stack);
+    res.status(500).json({ error: 'Ошибка сервера', details: error.message, stack: error.stack });
   }
 });
 

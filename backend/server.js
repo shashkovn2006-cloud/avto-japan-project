@@ -11,16 +11,16 @@ import cookieParser from 'cookie-parser';
 import pkg from 'pg';
 import fs from 'fs/promises';
 
-
 const { Pool } = pkg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3001;
+const SERVER_IP = '94.232.42.162';
 const JWT_SECRET = 'your-super-secret-key-change-in-production-2024';
 
-// Подключение к PostgreSQL (измените пароль если нужно)
+// Подключение к PostgreSQL
 const pool = new Pool({
   connectionString: 'postgresql://avto_user:mysecretpassword@localhost:5432/avto_japan_db',
   ssl: false
@@ -28,7 +28,7 @@ const pool = new Pool({
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: ['http://localhost:3000', `http://${SERVER_IP}:3000`, `http://${SERVER_IP}:3001`],
   credentials: true
 }));
 app.use(express.json());
@@ -104,6 +104,7 @@ app.post('/api/auth/register', async (req, res) => {
     res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
     res.json({ success: true, user, token });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -122,6 +123,7 @@ app.post('/api/auth/login', async (req, res) => {
     res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
     res.json({ success: true, user: { id: user.id, email: user.email, name: user.name, role: user.role }, token });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -166,7 +168,7 @@ app.get('/api/cars', async (req, res) => {
     const result = await pool.query(query, values);
     const carsWithImages = result.rows.map(car => ({
       ...car,
-      image: car.image && !car.image.startsWith('http') ? `http://94.232.42.162:3001${car.image}` : car.image
+      image: car.image && !car.image.startsWith('http') ? `http://${SERVER_IP}:${PORT}${car.image}` : car.image
     }));
     res.json(carsWithImages);
   } catch (error) {
@@ -182,10 +184,11 @@ app.get('/api/cars/:id', async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: 'Автомобиль не найден' });
     const car = result.rows[0];
     const galleryResult = await pool.query('SELECT image_url FROM car_gallery WHERE car_id = $1', [carId]);
-    car.image = car.image && !car.image.startsWith('http') ? `http://localhost:${PORT}${car.image}` : car.image;
-    car.gallery = galleryResult.rows.map(g => g.image_url.startsWith('http') ? g.image_url : `http://localhost:${PORT}${g.image_url}`);
+    car.image = car.image && !car.image.startsWith('http') ? `http://${SERVER_IP}:${PORT}${car.image}` : car.image;
+    car.gallery = galleryResult.rows.map(g => g.image_url.startsWith('http') ? g.image_url : `http://${SERVER_IP}:${PORT}${g.image_url}`);
     res.json(car);
   } catch (error) {
+    console.error('Ошибка получения автомобиля:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -199,6 +202,7 @@ app.post('/api/cars', authenticateToken, isAdmin, async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -214,6 +218,7 @@ app.put('/api/cars/:id', authenticateToken, isAdmin, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: 'Автомобиль не найден' });
     res.json(result.rows[0]);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -229,6 +234,7 @@ app.delete('/api/cars/:id', authenticateToken, isAdmin, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: 'Автомобиль не найден' });
     res.json({ message: 'Автомобиль удален' });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -240,8 +246,9 @@ app.post('/api/cars/:id/upload-main', authenticateToken, isAdmin, upload.single(
     const imageUrl = `/uploads/cars/${carId}/${req.file.filename}`;
     await pool.query('UPDATE cars SET image = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [imageUrl, carId]);
     await pool.query('INSERT INTO car_gallery (car_id, image_url) VALUES ($1, $2)', [carId, imageUrl]);
-    res.json({ success: true, imageUrl, fullUrl: `http://localhost:${PORT}${imageUrl}` });
+    res.json({ success: true, imageUrl, fullUrl: `http://${SERVER_IP}:${PORT}${imageUrl}` });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -253,11 +260,12 @@ app.get('/api/cars/:id/images', authenticateToken, isAdmin, async (req, res) => 
     const carResult = await pool.query('SELECT image FROM cars WHERE id = $1', [carId]);
     const images = result.rows.map(row => ({
       url: row.image_url,
-      fullUrl: row.image_url.startsWith('http') ? row.image_url : `http://localhost:${PORT}${row.image_url}`,
+      fullUrl: row.image_url.startsWith('http') ? row.image_url : `http://${SERVER_IP}:${PORT}${row.image_url}`,
       isMain: carResult.rows[0]?.image === row.image_url
     }));
     res.json({ uploadedFiles: images, total: images.length });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -362,13 +370,11 @@ app.post('/api/delivery/create', authenticateToken, async (req, res) => {
     
     const user_id = req.user.id;
     
-    // Получаем информацию об автомобиле
     const carResult = await pool.query('SELECT price FROM cars WHERE id = $1', [car_id]);
     if (carResult.rows.length === 0) {
       return res.status(404).json({ error: 'Автомобиль не найден' });
     }
     
-    // Рассчитываем стоимость доставки
     let delivery_price = 0;
     if (delivery_type === 'standard') delivery_price = 1500;
     else if (delivery_type === 'express') delivery_price = 2500;
@@ -392,7 +398,6 @@ app.post('/api/delivery/create', authenticateToken, async (req, res) => {
   }
 });
 
-// Получение заказов пользователя
 app.get('/api/delivery/my-orders', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
@@ -410,7 +415,6 @@ app.get('/api/delivery/my-orders', authenticateToken, async (req, res) => {
   }
 });
 
-// Получение всех заказов (только для админа)
 app.get('/api/delivery/all-orders', authenticateToken, isAdmin, async (req, res) => {
   try {
     const result = await pool.query(
@@ -427,48 +431,24 @@ app.get('/api/delivery/all-orders', authenticateToken, isAdmin, async (req, res)
   }
 });
 
-// Обновление статуса заказа (только для админа)
-app.put('/api/delivery/update-status/:id', authenticateToken, isAdmin, async (req, res) => {
-  try {
-    const orderId = parseInt(req.params.id);
-    const { status } = req.body;
-    
-    const result = await pool.query(
-      `UPDATE delivery_orders SET status = $1, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $2 RETURNING *`,
-      [status, orderId]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Заказ не найден' });
-    }
-    
-    res.json({ success: true, order: result.rows[0] });
-  } catch (error) {
-    console.error('Ошибка обновления статуса:', error);
-    res.status(500).json({ error: 'Ошибка сервера' });
-  }
-});
+// ========== WEBSOCKET ==========
 
-// После создания app:
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: '*',
     credentials: true
   }
 });
 
-// Хранилище активных соединений
 const userSockets = new Map();
 
-// WebSocket подключения
 io.on('connection', (socket) => {
-  console.log('Новое подключение:', socket.id);
+  console.log('Новое подключение WebSocket:', socket.id);
   
   socket.on('register', (userId) => {
     userSockets.set(userId, socket.id);
-    console.log(`Пользователь ${userId} зарегистрирован`);
+    console.log(`Пользователь ${userId} зарегистрирован в WebSocket`);
   });
   
   socket.on('disconnect', () => {
@@ -481,23 +461,21 @@ io.on('connection', (socket) => {
   });
 });
 
-// Функция отправки уведомления
-export const sendNotification = (userId, title, message, type = 'info') => {
+const sendNotification = (userId, title, message, type = 'info') => {
   const socketId = userSockets.get(userId);
   if (socketId) {
     io.to(socketId).emit('notification', { title, message, type });
   }
 };
 
-// Обновите эндпоинт обновления статуса заказа:
+// Обновление статуса заказа (только для админа) с уведомлением
 app.put('/api/delivery/update-status/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const orderId = parseInt(req.params.id);
     const { status } = req.body;
     
-    // Получаем информацию о заказе для уведомления
     const orderInfo = await pool.query(
-      'SELECT user_id, car_id FROM delivery_orders WHERE id = $1',
+      'SELECT user_id FROM delivery_orders WHERE id = $1',
       [orderId]
     );
     
@@ -511,7 +489,6 @@ app.put('/api/delivery/update-status/:id', authenticateToken, isAdmin, async (re
       return res.status(404).json({ error: 'Заказ не найден' });
     }
     
-    // Отправляем уведомление пользователю
     const statusMessages = {
       'processing': { title: 'Заказ в обработке', message: 'Ваш заказ принят и обрабатывается' },
       'shipped': { title: 'Заказ отправлен', message: 'Ваш заказ отправлен. Ожидайте доставку' },
@@ -519,7 +496,7 @@ app.put('/api/delivery/update-status/:id', authenticateToken, isAdmin, async (re
       'cancelled': { title: 'Заказ отменён', message: 'Ваш заказ был отменён' }
     };
     
-    if (statusMessages[status]) {
+    if (statusMessages[status] && orderInfo.rows.length > 0) {
       sendNotification(
         orderInfo.rows[0].user_id,
         statusMessages[status].title,
@@ -543,12 +520,10 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
-
-
-// В конце файла замените app.listen на server.listen:
+// Запуск сервера
 server.listen(PORT, async () => {
   await initUploads();
-  console.log(`🚗 Сервер запущен на http://localhost:${PORT}`);
+  console.log(`🚗 Сервер запущен на http://${SERVER_IP}:${PORT}`);
   console.log(`🗄️ База данных: PostgreSQL`);
   console.log(`🔌 WebSocket сервер запущен`);
 });

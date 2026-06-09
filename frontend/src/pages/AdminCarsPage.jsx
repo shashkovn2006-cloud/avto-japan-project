@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../App';
 import './AdminCarsPage.css';
 
-const API_BASE = 'http://94.232.42.162:3001';
+const API_BASE = 'http://localhost:3001';
 
 const AdminCarsPage = () => {
   const [cars, setCars] = useState([]);
@@ -21,12 +21,11 @@ const AdminCarsPage = () => {
     try {
       const res = await axios.get(`${API_BASE}/api/cars`);
       setCars(res.data);
-    } catch (error) { console.error(error); } 
-    finally { setLoading(false); }
+    } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
   const handleDelete = async (id) => {
-    if (confirm('Вы уверены, что хотите удалить этот автомобиль?')) {
+    if (confirm('Удалить?')) {
       await axios.delete(`${API_BASE}/api/cars/${id}`, { withCredentials: true });
       fetchCars();
     }
@@ -46,7 +45,7 @@ const AdminCarsPage = () => {
       setEditingCar(null);
       fetchCars();
     } catch (error) {
-      alert('Ошибка сохранения');
+      alert('Ошибка');
     }
   };
 
@@ -64,149 +63,93 @@ const AdminCarsPage = () => {
 
   const handleUploadImage = async (carId, file) => {
     if (!file) return;
-    const formData = new FormData();
-    formData.append('image', file);
-    await axios.post(`${API_BASE}/api/cars/${carId}/upload-main`, formData, {
+    const fd = new FormData();
+    fd.append('image', file);
+    await axios.post(`${API_BASE}/api/cars/${carId}/upload-main`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' }, withCredentials: true
     });
     fetchCars();
   };
 
   if (loading) {
-    return (
-      <div className="admin-loading">
-        <div className="loader"></div>
-        <p>Загрузка автомобилей...</p>
-      </div>
-    );
+    return <div className="admin-loading"><div className="loader"></div><p>Загрузка...</p></div>;
   }
 
   return (
-    <div className="admin-cars-page">
-      {/* Шапка */}
+    <div className="admin-page">
       <div className="admin-header">
-        <div className="admin-header-content">
-          <h1><i className="fas fa-car"></i> Управление автомобилями</h1>
+        <div>
+          <h1 className="admin-title">🚗 Управление автомобилями</h1>
           <p className="admin-subtitle">Добавление, редактирование и управление каталогом</p>
         </div>
-        <button className="btn-add-car" onClick={() => { setEditingCar(null); setFormData({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '', features: '' }); setShowForm(true); }}>
-          <i className="fas fa-plus"></i> Добавить автомобиль
+        <button className="admin-add-btn" onClick={() => { setEditingCar(null); setFormData({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '', features: '' }); setShowForm(true); }}>
+          + Добавить автомобиль
         </button>
       </div>
 
-      {/* Модальное окно */}
       {showForm && (
-        <div className="admin-modal">
-          <div className="admin-modal-content">
-            <div className="modal-header">
-              <h2><i className="fas fa-car"></i> {editingCar ? 'Редактировать автомобиль' : 'Новый автомобиль'}</h2>
-              <button className="modal-close" onClick={() => setShowForm(false)}>×</button>
+        <div className="admin-modal-overlay">
+          <div className="admin-modal">
+            <div className="admin-modal-header">
+              <h2 style={{margin:0}}>{editingCar ? '✏️ Редактировать' : '➕ Новый автомобиль'}</h2>
+              <button onClick={() => setShowForm(false)} style={{background:'none', border:'none', fontSize:'24px', cursor:'pointer', color:'#94a3b8'}}>×</button>
             </div>
-            <form onSubmit={handleSubmit} className="admin-form">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label><i className="fas fa-car"></i> Название *</label>
-                  <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required placeholder="Toyota Camry 2020" />
+            <form onSubmit={handleSubmit}>
+              <div className="admin-modal-body">
+                <div className="admin-form-grid">
+                  <input type="text" placeholder="Название" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required className="admin-form-field" />
+                  <input type="number" placeholder="Цена ($)" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required className="admin-form-field" />
+                  <input type="text" placeholder="Сервис" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} required className="admin-form-field" />
+                  <input type="number" placeholder="Год" value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} required className="admin-form-field" />
+                  <input type="text" placeholder="Пробег" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} required className="admin-form-field" />
+                  <input type="text" placeholder="Двигатель" value={formData.engine} onChange={e => setFormData({...formData, engine: e.target.value})} required className="admin-form-field" />
+                  <input type="text" placeholder="Оценка" value={formData.auctionGrade} onChange={e => setFormData({...formData, auctionGrade: e.target.value})} className="admin-form-field" />
+                  <input type="text" placeholder="Локация" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="admin-form-field" />
+                  <input type="text" placeholder="Цвет" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} className="admin-form-field" />
+                  <input type="text" placeholder="Комплектация (через запятую)" value={formData.features} onChange={e => setFormData({...formData, features: e.target.value})} className="admin-form-field" />
+                  <textarea rows="3" placeholder="Описание" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="admin-form-field admin-form-field-full"></textarea>
                 </div>
-                <div className="form-group">
-                  <label><i className="fas fa-dollar-sign"></i> Цена ($) *</label>
-                  <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required placeholder="25000" />
+                <div className="admin-form-buttons">
+                  <button type="button" className="admin-btn-cancel" onClick={() => setShowForm(false)}>Отмена</button>
+                  <button type="submit" className="admin-btn-save">Сохранить</button>
                 </div>
-                <div className="form-group">
-                  <label><i className="fas fa-store"></i> Сервис *</label>
-                  <input type="text" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} required placeholder="carfromjapan.com" />
-                </div>
-                <div className="form-group">
-                  <label><i className="fas fa-calendar"></i> Год *</label>
-                  <input type="number" value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} required placeholder="2020" />
-                </div>
-                <div className="form-group">
-                  <label><i className="fas fa-road"></i> Пробег *</label>
-                  <input type="text" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} required placeholder="45,000 km" />
-                </div>
-                <div className="form-group">
-                  <label><i className="fas fa-engine"></i> Двигатель *</label>
-                  <input type="text" value={formData.engine} onChange={e => setFormData({...formData, engine: e.target.value})} required placeholder="2.5L Hybrid" />
-                </div>
-                <div className="form-group">
-                  <label><i className="fas fa-star"></i> Оценка аукциона</label>
-                  <input type="number" step="0.1" value={formData.auctionGrade} onChange={e => setFormData({...formData, auctionGrade: e.target.value})} placeholder="4.5" />
-                </div>
-                <div className="form-group">
-                  <label><i className="fas fa-map-marker-alt"></i> Локация</label>
-                  <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="Tokyo, Japan" />
-                </div>
-                <div className="form-group">
-                  <label><i className="fas fa-palette"></i> Цвет</label>
-                  <input type="text" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} placeholder="Черный" />
-                </div>
-                <div className="form-group full-width">
-                  <label><i className="fas fa-list"></i> Комплектация (через запятую)</label>
-                  <input type="text" value={formData.features} onChange={e => setFormData({...formData, features: e.target.value})} placeholder="Кожаный салон, Панорамная крыша, Навигация" />
-                </div>
-                <div className="form-group full-width">
-                  <label><i className="fas fa-align-left"></i> Описание</label>
-                  <textarea rows="4" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Подробное описание автомобиля..."></textarea>
-                </div>
-              </div>
-              <div className="form-actions">
-                <button type="button" className="btn-cancel" onClick={() => { setShowForm(false); setEditingCar(null); }}>Отмена</button>
-                <button type="submit" className="btn-save"><i className="fas fa-save"></i> {editingCar ? 'Сохранить изменения' : 'Добавить автомобиль'}</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Таблица */}
-      <div className="cars-table-container">
-        <div className="table-wrapper">
-          <table className="cars-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Фото</th>
-                <th>Название</th>
-                <th>Цена</th>
-                <th>Год</th>
-                <th>Сервис</th>
-                <th>Действия</th>
+      <div className="admin-table-container">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Фото</th>
+              <th>Название</th>
+              <th>Цена</th>
+              <th>Год</th>
+              <th>Сервис</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cars.map(car => (
+              <tr key={car.id}>
+                <td>{car.id}</td>
+                <td>{car.image ? <img src={car.image} className="admin-thumb" /> : '—'}</td>
+                <td><strong>{car.title}</strong></td>
+                <td>${car.price?.toLocaleString()}</td>
+                <td>{car.year}</td>
+                <td>{car.service}</td>
+                <td className="admin-actions">
+                  <button onClick={() => handleEdit(car)}>✏️</button>
+                  <label>📷<input type="file" style={{display:'none'}} onChange={e => handleUploadImage(car.id, e.target.files[0])} /></label>
+                  <button onClick={() => handleDelete(car.id)} style={{color:'#ef4444'}}>🗑️</button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {cars.map(car => (
-                <tr key={car.id}>
-                  <td data-label="ID">{car.id}</td>
-                  <td data-label="Фото">
-                    {car.image ? (
-                      <img src={car.image} alt={car.title} className="car-thumbnail" />
-                    ) : (
-                      <div className="no-image"><i className="fas fa-image"></i></div>
-                    )}
-                  </td>
-                  <td data-label="Название"><strong>{car.title}</strong></td>
-                  <td data-label="Цена">${car.price?.toLocaleString()}</td>
-                  <td data-label="Год">{car.year}</td>
-                  <td data-label="Сервис">{car.service}</td>
-                  <td data-label="Действия">
-                    <div className="table-actions">
-                      <button className="action-btn edit" onClick={() => handleEdit(car)} title="Редактировать">
-                        <i className="fas fa-edit"></i>
-                      </button>
-                      <label className="action-btn upload" title="Загрузить фото">
-                        <i className="fas fa-camera"></i>
-                        <input type="file" accept="image/*" style={{display: 'none'}} onChange={e => handleUploadImage(car.id, e.target.files[0])} />
-                      </label>
-                      <button className="action-btn delete" onClick={() => handleDelete(car.id)} title="Удалить">
-                        <i className="fas fa-trash-alt"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

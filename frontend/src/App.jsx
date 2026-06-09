@@ -201,58 +201,54 @@ function HomePage() {
 function CatalogPage() {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sorting, setSorting] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [priceInput, setPriceInput] = useState({ minPrice: '', maxPrice: '' });
   const [filters, setFilters] = useState({ minPrice: '', maxPrice: '', service: 'all', sortBy: 'year_desc' });
-  const [advancedFilters, setAdvancedFilters] = useState({
-    fuelType: 'all',
-    transmission: 'all',
-    bodyType: 'all',
-    minYear: '',
-    maxYear: '',
-    minMileage: '',
-    maxMileage: '',
-  });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
   useEffect(() => {
     fetchCars();
-  }, [filters, searchTerm, advancedFilters]);
+  }, [filters, searchTerm]);
 
   const fetchCars = async () => {
     try {
       setLoading(true);
       let url = 'http://localhost:3001/api/cars';
       const params = new URLSearchParams();
-      
       if (searchTerm) params.append('search', searchTerm);
       if (filters.minPrice) params.append('minPrice', filters.minPrice);
       if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
       if (filters.service && filters.service !== 'all') params.append('service', filters.service);
       if (filters.sortBy) params.append('sortBy', filters.sortBy);
-      
-      // Расширенные фильтры
-      if (advancedFilters.fuelType !== 'all') params.append('fuelType', advancedFilters.fuelType);
-      if (advancedFilters.transmission !== 'all') params.append('transmission', advancedFilters.transmission);
-      if (advancedFilters.bodyType !== 'all') params.append('bodyType', advancedFilters.bodyType);
-      if (advancedFilters.minYear) params.append('minYear', advancedFilters.minYear);
-      if (advancedFilters.maxYear) params.append('maxYear', advancedFilters.maxYear);
-      if (advancedFilters.minMileage) params.append('minMileage', advancedFilters.minMileage);
-      if (advancedFilters.maxMileage) params.append('maxMileage', advancedFilters.maxMileage);
-      
-      if (params.toString()) {
-        url += '?' + params.toString();
-      }
-      
+      if (params.toString()) url += '?' + params.toString();
       const response = await axios.get(url);
       setCars(response.data);
     } catch (error) {
-      console.error('Ошибка загрузки:', error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = () => {
+    setSearchTerm(searchInput);
+    setCurrentPage(1);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') handleSearch();
+  };
+
+  const handlePriceInputChange = (e) => {
+    const { name, value } = e.target;
+    setPriceInput(prev => ({ ...prev, [name]: value }));
+  };
+
+  const applyPriceFilter = () => {
+    setFilters(prev => ({ ...prev, minPrice: priceInput.minPrice, maxPrice: priceInput.maxPrice }));
+    setCurrentPage(1);
   };
 
   const handleFilterChange = (e) => {
@@ -262,30 +258,12 @@ function CatalogPage() {
   };
 
   const resetFilters = () => {
+    setSearchInput('');
     setSearchTerm('');
+    setPriceInput({ minPrice: '', maxPrice: '' });
     setFilters({ minPrice: '', maxPrice: '', service: 'all', sortBy: 'year_desc' });
-    setAdvancedFilters({
-      fuelType: 'all',
-      transmission: 'all',
-      bodyType: 'all',
-      minYear: '',
-      maxYear: '',
-      minMileage: '',
-      maxMileage: '',
-    });
     setCurrentPage(1);
     setTimeout(() => fetchCars(), 0);
-  };
-
-  const animateSorting = () => {
-    setSorting(true);
-    setTimeout(() => setSorting(false), 500);
-  };
-
-  const handleSortChange = (sortBy) => {
-    setFilters(prev => ({ ...prev, sortBy }));
-    animateSorting();
-    setCurrentPage(1);
   };
 
   const paginatedCars = cars.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -308,118 +286,48 @@ function CatalogPage() {
         <h1>Каталог автомобилей из Японии</h1>
         <p className="text-secondary">Подборка лучших автомобилей с японских аукционов</p>
       </div>
-      
       <div className="container">
         <div className="search-container">
           <input 
             type="text" 
             placeholder="Поиск по марке или модели..." 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && fetchCars()}
+            value={searchInput} 
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyPress={handleKeyPress}
           />
-          <button className="btn-accent" onClick={fetchCars}>
+          <button className="btn-accent" onClick={handleSearch}>
             <i className="fas fa-search"></i> Найти
           </button>
           <button className="btn-secondary" onClick={resetFilters}>
             Сбросить
           </button>
         </div>
-        
-        <div className="filter-header">
-          <button 
-            className="btn-advanced-filters" 
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-          >
-            <i className={`fas fa-sliders-h ${showAdvancedFilters ? 'rotated' : ''}`}></i>
-            Расширенные фильтры
-          </button>
-        </div>
-
-        {showAdvancedFilters && (
-          <div className="advanced-filters fade-in-up">
-            <div className="filter-group">
-              <label><i className="fas fa-gas-pump"></i> Тип топлива</label>
-              <select value={advancedFilters.fuelType} onChange={(e) => setAdvancedFilters({...advancedFilters, fuelType: e.target.value})}>
-                <option value="all">Все</option>
-                <option value="petrol">Бензин</option>
-                <option value="diesel">Дизель</option>
-                <option value="hybrid">Гибрид</option>
-                <option value="electric">Электро</option>
-              </select>
-            </div>
-            
-            <div className="filter-group">
-              <label><i className="fas fa-cogs"></i> Коробка передач</label>
-              <select value={advancedFilters.transmission} onChange={(e) => setAdvancedFilters({...advancedFilters, transmission: e.target.value})}>
-                <option value="all">Все</option>
-                <option value="automatic">Автомат</option>
-                <option value="manual">Механика</option>
-              </select>
-            </div>
-            
-            <div className="filter-group">
-              <label><i className="fas fa-car"></i> Тип кузова</label>
-              <select value={advancedFilters.bodyType} onChange={(e) => setAdvancedFilters({...advancedFilters, bodyType: e.target.value})}>
-                <option value="all">Все</option>
-                <option value="sedan">Седан</option>
-                <option value="suv">Внедорожник</option>
-                <option value="hatchback">Хэтчбек</option>
-                <option value="minivan">Минивэн</option>
-              </select>
-            </div>
-            
-            <div className="filter-group">
-              <label><i className="fas fa-calendar"></i> Год выпуска</label>
-              <div className="range-inputs">
-                <input type="number" placeholder="От" value={advancedFilters.minYear} onChange={(e) => setAdvancedFilters({...advancedFilters, minYear: e.target.value})} />
-                <span>-</span>
-                <input type="number" placeholder="До" value={advancedFilters.maxYear} onChange={(e) => setAdvancedFilters({...advancedFilters, maxYear: e.target.value})} />
-              </div>
-            </div>
-            
-            <div className="filter-group">
-              <label><i className="fas fa-road"></i> Пробег (км)</label>
-              <div className="range-inputs">
-                <input type="number" placeholder="От" value={advancedFilters.minMileage} onChange={(e) => setAdvancedFilters({...advancedFilters, minMileage: e.target.value})} />
-                <span>-</span>
-                <input type="number" placeholder="До" value={advancedFilters.maxMileage} onChange={(e) => setAdvancedFilters({...advancedFilters, maxMileage: e.target.value})} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="sorting-section">
-          <div className="sort-buttons">
-            <button 
-              className={`sort-btn ${filters.sortBy === 'price_asc' ? 'active' : ''}`}
-              onClick={() => handleSortChange('price_asc')}
-            >
-              <i className="fas fa-arrow-up"></i> Цена ↑
-            </button>
-            <button 
-              className={`sort-btn ${filters.sortBy === 'price_desc' ? 'active' : ''}`}
-              onClick={() => handleSortChange('price_desc')}
-            >
-              <i className="fas fa-arrow-down"></i> Цена ↓
-            </button>
-            <button 
-              className={`sort-btn ${filters.sortBy === 'year_desc' ? 'active' : ''}`}
-              onClick={() => handleSortChange('year_desc')}
-            >
-              <i className="fas fa-calendar"></i> Новые
-            </button>
-          </div>
-        </div>
-
-        <div className="basic-filters">
+        <div className="filters">
           <div className="filter-group">
             <label>Цена от ($)</label>
-            <input type="number" name="minPrice" value={filters.minPrice} onChange={handleFilterChange} placeholder="0" />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input 
+                type="number" 
+                name="minPrice" 
+                value={priceInput.minPrice} 
+                onChange={handlePriceInputChange} 
+                placeholder="0" 
+              />
+              <button className="btn-small" onClick={applyPriceFilter}>ОК</button>
+            </div>
           </div>
           <div className="filter-group">
             <label>Цена до ($)</label>
-            <input type="number" name="maxPrice" value={filters.maxPrice} onChange={handleFilterChange} placeholder="100000" />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input 
+                type="number" 
+                name="maxPrice" 
+                value={priceInput.maxPrice} 
+                onChange={handlePriceInputChange} 
+                placeholder="100000" 
+              />
+              <button className="btn-small" onClick={applyPriceFilter}>ОК</button>
+            </div>
           </div>
           <div className="filter-group">
             <label>Сервис</label>
@@ -430,10 +338,16 @@ function CatalogPage() {
               <option value="japan-partner.com">Japan Partner</option>
             </select>
           </div>
+          <div className="filter-group">
+            <label>Сортировка</label>
+            <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange}>
+              <option value="year_desc">Сначала новые</option>
+              <option value="price_asc">Сначала дешевле</option>
+              <option value="price_desc">Сначала дороже</option>
+            </select>
+          </div>
         </div>
       </div>
-
-      {sorting && <div className="sorting-overlay"><div className="sorting-spinner"></div></div>}
 
       {cars.length === 0 ? (
         <div className="container text-center">
@@ -449,28 +363,13 @@ function CatalogPage() {
               <div>Найдено автомобилей: <span className="text-accent">{cars.length}</span></div>
               <div className="text-secondary">Страница {currentPage} из {totalPages}</div>
             </div>
-
-            <div className={`cars-grid ${sorting ? 'sorting' : ''}`}>
-              {paginatedCars.map((car, index) => (
-                <div 
-                  key={car.id} 
-                  className={`car-card hover-lift fade-in-up delay-${(index % 5) + 1}`} 
-                  onClick={() => window.location.href = `/car/${car.id}`}
-                >
+            <div className="cars-grid">
+              {paginatedCars.map(car => (
+                <div key={car.id} className="car-card hover-lift" onClick={() => window.location.href = `/car/${car.id}`}>
                   <div className="car-image">
-                    {car.image ? (
-                      <img src={car.image} alt={car.title} onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }} />
-                    ) : null}
-                    <div className="image-placeholder" style={{ display: car.image ? 'none' : 'flex' }}>
-                      <i className="fas fa-car"></i>
-                    </div>
+                    {car.image ? <img src={car.image} alt={car.title} /> : <div className="image-placeholder"><i className="fas fa-car"></i></div>}
                     <span className="car-badge">{car.service}</span>
-                    <div className="auction-badge">
-                      <i className="fas fa-gavel"></i>{car.auctionGrade || '4.5'}/5
-                    </div>
+                    <div className="auction-badge"><i className="fas fa-gavel"></i>{car.auctionGrade || '4.5'}/5</div>
                   </div>
                   <div className="car-info">
                     <h3>{car.title}</h3>
@@ -484,34 +383,20 @@ function CatalogPage() {
                         <div className="price-label">Цена в Японии</div>
                         <div className="price-value">${(typeof car.price === 'string' ? parseInt(car.price) : car.price).toLocaleString()}</div>
                       </div>
-                      <button className="btn-primary" onClick={(e) => {
-                        e.stopPropagation();
-                        window.location.href = `/car/${car.id}`;
-                      }}>
-                        <i className="fas fa-eye"></i> Подробнее
-                      </button>
+                      <button className="btn-primary" onClick={(e) => { e.stopPropagation(); window.location.href = `/car/${car.id}`; }}>Подробнее</button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-
           {totalPages > 1 && (
             <div className="container">
               <div className="pagination">
-                <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage === 1}>
-                  <i className="fas fa-chevron-left"></i> Назад
-                </button>
-                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(page => (
-                  <button key={page} onClick={() => setCurrentPage(page)} className={currentPage === page ? 'active' : ''}>
-                    {page}
-                  </button>
-                ))}
+                <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage === 1}>← Назад</button>
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(page => <button key={page} onClick={() => setCurrentPage(page)} className={currentPage === page ? 'active' : ''}>{page}</button>)}
                 {totalPages > 5 && <span>...</span>}
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} disabled={currentPage === totalPages}>
-                  Вперед <i className="fas fa-chevron-right"></i>
-                </button>
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} disabled={currentPage === totalPages}>Вперед →</button>
               </div>
             </div>
           )}

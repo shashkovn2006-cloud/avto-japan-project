@@ -17,23 +17,28 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3001;
-const SERVER_IP = '94.232.42.162';
-const JWT_SECRET = 'your-super-secret-key-change-in-production-2024';
+const JWT_SECRET = 'your-super-secret-key';
 
 // Подключение к PostgreSQL
 const pool = new Pool({
-  connectionString: 'postgresql://avto_user:mysecretpassword@localhost:5432/avto_japan_db',
-  ssl: false
+  user: 'avto_user',
+  password: 'mysecretpassword',
+  host: 'localhost',
+  port: 5432,
+  database: 'avto_japan_db'
 });
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', `http://${SERVER_IP}:3000`, `http://${SERVER_IP}:3001`],
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+// РАЗДАЧА СТАТИКИ ДЛЯ ФОТО (ЭТО ГЛАВНОЕ)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads/cars', express.static(path.join(__dirname, 'uploads/cars')));
 
 // Multer настройки
 const storage = multer.diskStorage({
@@ -147,9 +152,6 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 
 app.get('/api/cars', async (req, res) => {
   try {
-    console.log('1. Запрос получен');
-    console.log('2. Параметры запроса:', req.query);
-    
     let query = 'SELECT * FROM cars';
     const conditions = [];
     const values = [];
@@ -168,25 +170,15 @@ app.get('/api/cars', async (req, res) => {
     else if (sortBy === 'year_desc') query += ' ORDER BY year DESC';
     else query += ' ORDER BY id ASC';
     
-    console.log('3. SQL запрос:', query);
-    console.log('4. Значения:', values);
-    
-    console.log('5. Выполняем pool.query...');
     const result = await pool.query(query, values);
-    console.log('6. Результат получен, строк:', result.rows.length);
-    
     const carsWithImages = result.rows.map(car => ({
       ...car,
-      image: car.image && !car.image.startsWith('http') ? `http://94.232.42.162:3001${car.image}` : car.image
+      image: car.image && !car.image.startsWith('http') ? `http://localhost:${PORT}${car.image}` : car.image
     }));
-    
-    console.log('7. Отправляем ответ');
     res.json(carsWithImages);
   } catch (error) {
-    console.error('ОШИБКА В /api/cars:', error);
-    console.error('Сообщение:', error.message);
-    console.error('Стек:', error.stack);
-    res.status(500).json({ error: 'Ошибка сервера', details: error.message, stack: error.stack });
+    console.error('Ошибка получения автомобилей:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
@@ -197,8 +189,8 @@ app.get('/api/cars/:id', async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: 'Автомобиль не найден' });
     const car = result.rows[0];
     const galleryResult = await pool.query('SELECT image_url FROM car_gallery WHERE car_id = $1', [carId]);
-    car.image = car.image && !car.image.startsWith('http') ? `http://${SERVER_IP}:${PORT}${car.image}` : car.image;
-    car.gallery = galleryResult.rows.map(g => g.image_url.startsWith('http') ? g.image_url : `http://${SERVER_IP}:${PORT}${g.image_url}`);
+    car.image = car.image && !car.image.startsWith('http') ? `http://localhost:${PORT}${car.image}` : car.image;
+    car.gallery = galleryResult.rows.map(g => g.image_url.startsWith('http') ? g.image_url : `http://localhost:${PORT}${g.image_url}`);
     res.json(car);
   } catch (error) {
     console.error('Ошибка получения автомобиля:', error);
@@ -259,7 +251,7 @@ app.post('/api/cars/:id/upload-main', authenticateToken, isAdmin, upload.single(
     const imageUrl = `/uploads/cars/${carId}/${req.file.filename}`;
     await pool.query('UPDATE cars SET image = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [imageUrl, carId]);
     await pool.query('INSERT INTO car_gallery (car_id, image_url) VALUES ($1, $2)', [carId, imageUrl]);
-    res.json({ success: true, imageUrl, fullUrl: `http://${SERVER_IP}:${PORT}${imageUrl}` });
+    res.json({ success: true, imageUrl, fullUrl: `http://localhost:${PORT}${imageUrl}` });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
@@ -273,7 +265,7 @@ app.get('/api/cars/:id/images', authenticateToken, isAdmin, async (req, res) => 
     const carResult = await pool.query('SELECT image FROM cars WHERE id = $1', [carId]);
     const images = result.rows.map(row => ({
       url: row.image_url,
-      fullUrl: row.image_url.startsWith('http') ? row.image_url : `http://${SERVER_IP}:${PORT}${row.image_url}`,
+      fullUrl: row.image_url.startsWith('http') ? row.image_url : `http://localhost:${PORT}${row.image_url}`,
       isMain: carResult.rows[0]?.image === row.image_url
     }));
     res.json({ uploadedFiles: images, total: images.length });
@@ -373,7 +365,6 @@ async function initUploads() {
 
 // ========== ДОСТАВКА И ЗАКАЗЫ ==========
 
-// Создание заказа на доставку
 app.post('/api/delivery/create', authenticateToken, async (req, res) => {
   try {
     const { 
@@ -481,7 +472,6 @@ const sendNotification = (userId, title, message, type = 'info') => {
   }
 };
 
-// Обновление статуса заказа (только для админа) с уведомлением
 app.put('/api/delivery/update-status/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const orderId = parseInt(req.params.id);
@@ -536,7 +526,8 @@ app.get('*', (req, res) => {
 // Запуск сервера
 server.listen(PORT, async () => {
   await initUploads();
-  console.log(`🚗 Сервер запущен на http://${SERVER_IP}:${PORT}`);
+  console.log(`🚗 Сервер запущен на http://localhost:${PORT}`);
   console.log(`🗄️ База данных: PostgreSQL`);
+  console.log(`📁 Фото загружаются в: ${path.join(__dirname, 'uploads/cars')}`);
   console.log(`🔌 WebSocket сервер запущен`);
 });

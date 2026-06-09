@@ -1,9 +1,12 @@
+/* Админ панель - стили */
 .admin-cars-page {
   padding: 40px 20px;
   max-width: 1400px;
   margin: 0 auto;
+  min-height: 100vh;
 }
 
+/* Шапка */
 .admin-header {
   display: flex;
   justify-content: space-between;
@@ -14,19 +17,20 @@
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
 .admin-header-content h1 {
   font-size: 28px;
   margin-bottom: 8px;
-  background: var(--gradient-accent);
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .admin-header-content h1 i {
   background: none;
-  -webkit-text-fill-color: var(--accent);
+  -webkit-text-fill-color: #ff6b6b;
   margin-right: 12px;
 }
 
@@ -37,7 +41,7 @@
 
 .btn-add-car {
   padding: 14px 28px;
-  background: var(--gradient-accent);
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
   border: none;
   border-radius: 40px;
   color: white;
@@ -47,11 +51,12 @@
   gap: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
 }
 
 .btn-add-car:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.5);
 }
 
 /* Модальное окно */
@@ -67,6 +72,7 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .admin-modal-content {
@@ -79,6 +85,7 @@
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+  animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modal-header {
@@ -86,13 +93,21 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-header h2 {
   font-size: 24px;
-  background: var(--gradient-accent);
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.modal-header h2 i {
+  background: none;
+  -webkit-text-fill-color: #ff6b6b;
+  margin-right: 10px;
 }
 
 .modal-close {
@@ -102,10 +117,17 @@
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: all 0.3s;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-close:hover {
-  color: var(--accent);
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
   transform: rotate(90deg);
 }
 
@@ -130,11 +152,12 @@
   font-size: 13px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.3px;
 }
 
 .form-group label i {
   margin-right: 8px;
-  color: var(--accent);
+  color: #ff6b6b;
 }
 
 .form-group input,
@@ -146,13 +169,15 @@
   font-size: 14px;
   color: white;
   transition: all 0.3s ease;
+  font-family: inherit;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: #ff6b6b;
   box-shadow: 0 0 15px rgba(255, 107, 107, 0.2);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .form-group input::placeholder,
@@ -177,15 +202,17 @@
   color: white;
   cursor: pointer;
   transition: all 0.3s;
+  font-weight: 500;
 }
 
 .btn-cancel:hover {
   background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
 }
 
 .btn-save {
   padding: 12px 28px;
-  background: var(--gradient-accent);
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
   border: none;
   border-radius: 40px;
   color: white;
@@ -195,6 +222,7 @@
   gap: 8px;
   cursor: pointer;
   transition: all 0.3s;
+  box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
 }
 
 .btn-save:hover {
@@ -211,9 +239,14 @@
   overflow-x: auto;
 }
 
+.table-wrapper {
+  overflow-x: auto;
+}
+
 .cars-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 800px;
 }
 
 .cars-table th,
@@ -221,6 +254,7 @@
   padding: 15px 12px;
   text-align: left;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: middle;
 }
 
 .cars-table th {
@@ -236,33 +270,37 @@
 }
 
 .car-thumbnail {
-  width: 50px;
-  height: 35px;
+  width: 60px;
+  height: 45px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .no-image {
-  width: 50px;
-  height: 35px;
+  width: 60px;
+  height: 45px;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
   color: rgba(255, 255, 255, 0.4);
+}
+
+.no-image i {
+  font-size: 20px;
 }
 
 .table-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .action-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -271,19 +309,40 @@
   border: none;
   background: rgba(255, 255, 255, 0.08);
   color: white;
+  font-size: 14px;
 }
 
 .action-btn.edit:hover {
-  background: var(--warning);
+  background: #fdcb6e;
   color: #000;
+  transform: translateY(-2px);
 }
 
 .action-btn.upload:hover {
-  background: var(--success);
+  background: #00b894;
+  transform: translateY(-2px);
 }
 
 .action-btn.delete:hover {
-  background: var(--accent);
+  background: #ff6b6b;
+  transform: translateY(-2px);
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .admin-loading {
@@ -294,6 +353,20 @@
   min-height: 400px;
 }
 
+.loader {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #ff6b6b;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Адаптивность */
 @media (max-width: 768px) {
   .admin-header {
     flex-direction: column;
@@ -315,8 +388,18 @@
     font-size: 12px;
   }
   
+  .car-thumbnail {
+    width: 40px;
+    height: 30px;
+  }
+  
   .table-actions {
     flex-direction: column;
     gap: 5px;
+  }
+  
+  .action-btn {
+    width: 28px;
+    height: 28px;
   }
 }

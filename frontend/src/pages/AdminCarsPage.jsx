@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useAuth } from '../App';
 import './AdminCarsPage.css';
 
 const API_BASE = 'http://localhost:3001';
@@ -71,47 +70,75 @@ const AdminCarsPage = () => {
     fetchCars();
   };
 
-  if (loading) {
-    return <div className="admin-loading"><div className="loader"></div><p>Загрузка...</p></div>;
-  }
+  if (loading) return <div className="admin-cars-container"><div className="loader"></div></div>;
 
   return (
-    <div className="admin-page">
-      <div className="admin-header">
-        <div>
-          <h1 className="admin-title">🚗 Управление автомобилями</h1>
-          <p className="admin-subtitle">Добавление, редактирование и управление каталогом</p>
-        </div>
-        <button className="admin-add-btn" onClick={() => { setEditingCar(null); setFormData({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '', features: '' }); setShowForm(true); }}>
+    <div className="admin-cars-container">
+      <div className="admin-cars-header">
+        <h1 className="admin-cars-title">🚗 Управление автомобилями</h1>
+        <button className="admin-cars-add-btn" onClick={() => { setEditingCar(null); setFormData({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '', features: '' }); setShowForm(true); }}>
           + Добавить автомобиль
         </button>
       </div>
 
       {showForm && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal">
-            <div className="admin-modal-header">
-              <h2 style={{margin:0}}>{editingCar ? '✏️ Редактировать' : '➕ Новый автомобиль'}</h2>
-              <button onClick={() => setShowForm(false)} style={{background:'none', border:'none', fontSize:'24px', cursor:'pointer', color:'#94a3b8'}}>×</button>
+        <div className="admin-cars-modal-overlay">
+          <div className="admin-cars-modal">
+            <div className="admin-cars-modal-header">
+              <h3 className="admin-cars-modal-title">{editingCar ? 'Редактировать автомобиль' : 'Новый автомобиль'}</h3>
+              <button className="admin-cars-modal-close" onClick={() => setShowForm(false)}>×</button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="admin-modal-body">
-                <div className="admin-form-grid">
-                  <input type="text" placeholder="Название" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required className="admin-form-field" />
-                  <input type="number" placeholder="Цена ($)" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required className="admin-form-field" />
-                  <input type="text" placeholder="Сервис" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} required className="admin-form-field" />
-                  <input type="number" placeholder="Год" value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} required className="admin-form-field" />
-                  <input type="text" placeholder="Пробег" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} required className="admin-form-field" />
-                  <input type="text" placeholder="Двигатель" value={formData.engine} onChange={e => setFormData({...formData, engine: e.target.value})} required className="admin-form-field" />
-                  <input type="text" placeholder="Оценка" value={formData.auctionGrade} onChange={e => setFormData({...formData, auctionGrade: e.target.value})} className="admin-form-field" />
-                  <input type="text" placeholder="Локация" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="admin-form-field" />
-                  <input type="text" placeholder="Цвет" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} className="admin-form-field" />
-                  <input type="text" placeholder="Комплектация (через запятую)" value={formData.features} onChange={e => setFormData({...formData, features: e.target.value})} className="admin-form-field" />
-                  <textarea rows="3" placeholder="Описание" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="admin-form-field admin-form-field-full"></textarea>
+              <div className="admin-cars-form">
+                <div className="admin-cars-form-grid">
+                  <div className="admin-cars-form-field">
+                    <label>Название</label>
+                    <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
+                  </div>
+                  <div className="admin-cars-form-field">
+                    <label>Цена ($)</label>
+                    <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required />
+                  </div>
+                  <div className="admin-cars-form-field">
+                    <label>Сервис</label>
+                    <input type="text" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} required />
+                  </div>
+                  <div className="admin-cars-form-field">
+                    <label>Год</label>
+                    <input type="number" value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} required />
+                  </div>
+                  <div className="admin-cars-form-field">
+                    <label>Пробег</label>
+                    <input type="text" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} required />
+                  </div>
+                  <div className="admin-cars-form-field">
+                    <label>Двигатель</label>
+                    <input type="text" value={formData.engine} onChange={e => setFormData({...formData, engine: e.target.value})} required />
+                  </div>
+                  <div className="admin-cars-form-field">
+                    <label>Оценка</label>
+                    <input type="number" step="0.1" value={formData.auctionGrade} onChange={e => setFormData({...formData, auctionGrade: e.target.value})} />
+                  </div>
+                  <div className="admin-cars-form-field">
+                    <label>Локация</label>
+                    <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+                  </div>
+                  <div className="admin-cars-form-field">
+                    <label>Цвет</label>
+                    <input type="text" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} />
+                  </div>
+                  <div className="admin-cars-form-field">
+                    <label>Комплектация (через запятую)</label>
+                    <input type="text" value={formData.features} onChange={e => setFormData({...formData, features: e.target.value})} />
+                  </div>
+                  <div className="admin-cars-form-field admin-cars-full-width">
+                    <label>Описание</label>
+                    <textarea rows="3" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
+                  </div>
                 </div>
-                <div className="admin-form-buttons">
-                  <button type="button" className="admin-btn-cancel" onClick={() => setShowForm(false)}>Отмена</button>
-                  <button type="submit" className="admin-btn-save">Сохранить</button>
+                <div className="admin-cars-form-buttons">
+                  <button type="button" className="admin-cars-btn-cancel" onClick={() => setShowForm(false)}>Отмена</button>
+                  <button type="submit" className="admin-cars-btn-submit">Сохранить</button>
                 </div>
               </div>
             </form>
@@ -119,8 +146,8 @@ const AdminCarsPage = () => {
         </div>
       )}
 
-      <div className="admin-table-container">
-        <table className="admin-table">
+      <div className="admin-cars-table-wrapper">
+        <table className="admin-cars-table">
           <thead>
             <tr>
               <th>ID</th>
@@ -136,15 +163,17 @@ const AdminCarsPage = () => {
             {cars.map(car => (
               <tr key={car.id}>
                 <td>{car.id}</td>
-                <td>{car.image ? <img src={car.image} className="admin-thumb" /> : '—'}</td>
+                <td>{car.image ? <img src={car.image} className="admin-cars-thumb" /> : '—'}</td>
                 <td><strong>{car.title}</strong></td>
                 <td>${car.price?.toLocaleString()}</td>
                 <td>{car.year}</td>
                 <td>{car.service}</td>
-                <td className="admin-actions">
-                  <button onClick={() => handleEdit(car)}>✏️</button>
-                  <label>📷<input type="file" style={{display:'none'}} onChange={e => handleUploadImage(car.id, e.target.files[0])} /></label>
-                  <button onClick={() => handleDelete(car.id)} style={{color:'#ef4444'}}>🗑️</button>
+                <td>
+                  <div className="admin-cars-actions">
+                    <button className="admin-cars-btn admin-cars-btn-edit" onClick={() => handleEdit(car)}>✏️</button>
+                    <label className="admin-cars-btn admin-cars-btn-upload" style={{cursor:'pointer'}}>📷<input type="file" style={{display:'none'}} onChange={e => handleUploadImage(car.id, e.target.files[0])} /></label>
+                    <button className="admin-cars-btn admin-cars-btn-delete" onClick={() => handleDelete(car.id)}>🗑️</button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -1,68 +1,115 @@
-/* Админ панель - чистые стили */
-.admin-cars-page {
+/* Админ панель - стиль как в заказах */
+.admin-cars-container {
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
-  min-height: 100vh;
-  background: #f1f5f9;
 }
 
-/* Шапка */
-.admin-header {
+.admin-cars-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
-  padding: 20px 24px;
-  background: white;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
-.admin-header-content h1 {
-  font-size: 24px;
-  margin-bottom: 4px;
+.admin-cars-title {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0;
   color: #0f172a;
 }
 
-.admin-header-content h1 i {
-  color: #3b82f6;
-  margin-right: 10px;
-}
-
-.admin-subtitle {
-  color: #64748b;
-  font-size: 14px;
-  margin: 0;
-}
-
-.btn-add-car {
-  padding: 10px 24px;
+.admin-cars-add-btn {
   background: #3b82f6;
-  border: none;
-  border-radius: 8px;
   color: white;
-  font-weight: 600;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.admin-cars-table-wrapper {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.admin-cars-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-cars-table th {
+  padding: 16px;
+  text-align: left;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-cars-table td {
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.admin-cars-table tr:hover {
+  background: #f8fafc;
+}
+
+.admin-cars-thumb {
+  width: 60px;
+  height: 45px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.admin-cars-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-cars-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  border: none;
+  background: #f1f5f9;
+  font-size: 14px;
 }
 
-.btn-add-car:hover {
-  background: #2563eb;
-  transform: translateY(-1px);
+.admin-cars-btn-edit:hover {
+  background: #f59e0b;
+  color: white;
 }
 
-/* Модальное окно */
-.admin-modal {
+.admin-cars-btn-upload:hover {
+  background: #10b981;
+  color: white;
+}
+
+.admin-cars-btn-delete:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* Модалка */
+.admin-cars-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -70,101 +117,79 @@
   z-index: 1000;
 }
 
-.admin-modal-content {
+.admin-cars-modal {
   background: white;
   border-radius: 16px;
-  padding: 24px;
-  max-width: 800px;
   width: 90%;
+  max-width: 800px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
 }
 
-.modal-header {
+.admin-cars-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
+  padding: 20px 24px;
   border-bottom: 1px solid #e2e8f0;
 }
 
-.modal-header h2 {
+.admin-cars-modal-title {
   font-size: 20px;
+  font-weight: 600;
   margin: 0;
-  color: #0f172a;
 }
 
-.modal-header h2 i {
-  color: #3b82f6;
-  margin-right: 8px;
-}
-
-.modal-close {
+.admin-cars-modal-close {
   background: none;
   border: none;
-  font-size: 28px;
+  font-size: 24px;
   cursor: pointer;
   color: #94a3b8;
 }
 
-.modal-close:hover {
-  color: #ef4444;
+.admin-cars-form {
+  padding: 24px;
 }
 
-/* Форма */
-.admin-form .form-grid {
+.admin-cars-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
-.admin-form .full-width {
-  grid-column: span 2;
-}
-
-.form-group {
+.admin-cars-form-field {
   display: flex;
   flex-direction: column;
 }
 
-.form-group label {
-  margin-bottom: 6px;
+.admin-cars-form-field label {
   font-size: 13px;
   font-weight: 500;
   color: #475569;
+  margin-bottom: 6px;
 }
 
-.form-group label i {
-  margin-right: 6px;
-  color: #3b82f6;
-}
-
-.form-group input,
-.form-group textarea {
+.admin-cars-form-field input,
+.admin-cars-form-field textarea {
   padding: 10px 12px;
-  background: white;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   font-size: 14px;
-  color: #0f172a;
-  transition: all 0.2s;
 }
 
-.form-group input:focus,
-.form-group textarea:focus {
+.admin-cars-form-field input:focus,
+.admin-cars-form-field textarea:focus {
   outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.1);
 }
 
-.form-group input::placeholder,
-.form-group textarea::placeholder {
-  color: #94a3b8;
+.admin-cars-full-width {
+  grid-column: span 2;
 }
 
-.form-actions {
+.admin-cars-form-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
@@ -173,172 +198,32 @@
   border-top: 1px solid #e2e8f0;
 }
 
-.btn-cancel {
-  padding: 10px 20px;
+.admin-cars-btn-cancel {
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
+  padding: 8px 20px;
   border-radius: 8px;
-  color: #475569;
   cursor: pointer;
-  font-weight: 500;
 }
 
-.btn-cancel:hover {
-  background: #e2e8f0;
-}
-
-.btn-save {
-  padding: 10px 20px;
+.admin-cars-btn-submit {
   background: #3b82f6;
+  color: white;
   border: none;
+  padding: 8px 20px;
   border-radius: 8px;
-  color: white;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
   cursor: pointer;
 }
 
-.btn-save:hover {
-  background: #2563eb;
-}
-
-/* Таблица */
-.cars-table-container {
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
-}
-
-.cars-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.cars-table th,
-.cars-table td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.cars-table th {
-  background: #f8fafc;
-  color: #475569;
-  font-weight: 600;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.cars-table tr:hover {
-  background: #f8fafc;
-}
-
-.car-thumbnail {
-  width: 50px;
-  height: 35px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.no-image {
-  width: 50px;
-  height: 35px;
-  background: #f1f5f9;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-}
-
-.table-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  background: #f1f5f9;
-  color: #475569;
-  font-size: 14px;
-}
-
-.action-btn.edit:hover {
-  background: #f59e0b;
-  color: white;
-}
-
-.action-btn.upload:hover {
-  background: #10b981;
-  color: white;
-}
-
-.action-btn.delete:hover {
-  background: #ef4444;
-  color: white;
-}
-
-.admin-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-}
-
-.loader {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Адаптивность */
 @media (max-width: 768px) {
-  .admin-cars-page {
-    padding: 16px;
-  }
-  
-  .admin-header {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
-  }
-  
-  .admin-form .form-grid {
+  .admin-cars-form-grid {
     grid-template-columns: 1fr;
   }
-  
-  .admin-form .full-width {
+  .admin-cars-full-width {
     grid-column: span 1;
   }
-  
-  .cars-table th,
-  .cars-table td {
-    padding: 8px 12px;
-    font-size: 12px;
-  }
-  
-  .car-thumbnail {
-    width: 40px;
-    height: 30px;
+  .admin-cars-header {
+    flex-direction: column;
+    gap: 16px;
   }
 }

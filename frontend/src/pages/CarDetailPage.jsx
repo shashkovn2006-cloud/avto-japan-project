@@ -4,6 +4,7 @@ import { useAuth } from '../App';
 import ImageUploader from '../components/ImageUploader';
 import ImageImporter from '../components/ImageImporter';
 import DeliveryForm from '../components/DeliveryForm';
+import toast, { Toaster } from 'react-hot-toast';
 import './CarDetailPage.css';
 
 const API_BASE = 'http://localhost:3001';
@@ -13,12 +14,16 @@ const CarDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [mainImage, setMainImage] = useState('');
   const [showUploader, setShowUploader] = useState(false);
-  const [showDelivery, setShowDelivery] = useState(false);  // ← ДОБАВЛЕНО
+  const [showDelivery, setShowDelivery] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const carId = window.location.pathname.split('/').pop();
 
-  useEffect(() => { fetchCarDetails(); }, [carId]);
+  useEffect(() => { 
+    fetchCarDetails();
+    if (user) checkFavorite();
+  }, [carId, user]);
 
   const fetchCarDetails = async () => {
     try {
@@ -30,6 +35,36 @@ const CarDetailPage = () => {
     finally { setLoading(false); }
   };
 
+  const checkFavorite = async () => {
+    if (!user) return;
+    try {
+      const res = await axios.get(`${API_BASE}/api/favorites/check/${carId}`, { withCredentials: true });
+      setIsFavorite(res.data.isFavorite);
+    } catch (error) {
+      console.error('Ошибка проверки избранного:', error);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      toast.error('Войдите в аккаунт, чтобы добавить в избранное');
+      return;
+    }
+    try {
+      if (isFavorite) {
+        await axios.delete(`${API_BASE}/api/favorites/${carId}`, { withCredentials: true });
+        setIsFavorite(false);
+        toast.success('Удалено из избранного');
+      } else {
+        await axios.post(`${API_BASE}/api/favorites/${carId}`, {}, { withCredentials: true });
+        setIsFavorite(true);
+        toast.success('Добавлено в избранное ❤️');
+      }
+    } catch (error) {
+      toast.error('Ошибка');
+    }
+  };
+
   if (loading) return <div className="app text-center"><div className="loader"></div><p>Загрузка...</p></div>;
   if (!car) return <div className="app text-center"><h2>Автомобиль не найден</h2><button onClick={() => window.location.href = '/'} className="btn-primary">На главную</button></div>;
 
@@ -38,14 +73,15 @@ const CarDetailPage = () => {
 
   return (
     <div className="app fade-in">
-      {/* Модальное окно доставки */}
+      <Toaster position="top-right" />
+      
       {showDelivery && (
         <DeliveryForm 
           car={car} 
           onClose={() => setShowDelivery(false)} 
           onSuccess={() => {
             setShowDelivery(false);
-            alert('Заказ оформлен! Мы свяжемся с вами.');
+            toast.success('Заказ оформлен! Мы свяжемся с вами.');
           }}
         />
       )}
@@ -130,7 +166,24 @@ const CarDetailPage = () => {
             </div>
             
             <div className="action-buttons">
-              <button className="btn-primary"><i className="fas fa-heart"></i> В избранное</button>
+              <button 
+                className={`btn-favorite ${isFavorite ? 'active' : ''}`} 
+                onClick={toggleFavorite}
+                style={{
+                  background: isFavorite ? '#ff6b6b' : 'rgba(255,255,255,0.08)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 20px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <i className={`fas ${isFavorite ? 'fa-heart' : 'fa-heart'}`}></i>
+                {isFavorite ? 'В избранном' : 'В избранное'}
+              </button>
               <button className="btn-accent" onClick={() => setShowDelivery(true)}>
                 <i className="fas fa-shopping-cart"></i> Купить сейчас
               </button>

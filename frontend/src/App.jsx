@@ -169,6 +169,8 @@ function AuthPage() {
   );
 }
 
+
+
 // Главная страница
 function HomePage() {
   const { user } = useAuth();
@@ -280,6 +282,7 @@ function CatalogPage() {
     );
   }
 
+
   return (
     <div className="app fade-in">
       <div className="container text-center">
@@ -325,7 +328,7 @@ function CatalogPage() {
                   onBlur={applyPriceFilter}
                   placeholder="100000" 
                 />
-              <button className="btn-small" onClick={applyPriceFilter}>ОК</button>
+            
             </div>
           </div>
           <div className="filter-group">
@@ -404,6 +407,7 @@ function CatalogPage() {
     </div>
   );
 }
+
 
 // Страница калькулятора
 function CalculatorPage() {
@@ -582,6 +586,68 @@ function AdminCarsPage() {
   );
 }
 
+function FavoritesPage() {
+  const [cars, setCars] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { fetchFavorites(); }, []);
+
+  const fetchFavorites = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/api/favorites`, { withCredentials: true });
+      setCars(res.data);
+    } catch (error) { console.error(error); } 
+    finally { setLoading(false); }
+  };
+
+  if (loading) return <div className="container text-center"><div className="loader"></div><p>Загрузка...</p></div>;
+
+  return (
+    <div className="app fade-in">
+      <div className="container text-center">
+        <h1><i className="fas fa-heart" style={{ color: '#ff6b6b' }}></i> Избранное</h1>
+        <p className="text-secondary">Автомобили, которые вы добавили в избранное</p>
+      </div>
+      {cars.length === 0 ? (
+        <div className="container text-center">
+          <i className="fas fa-heart-broken" style={{ fontSize: '60px', color: 'var(--text-secondary)' }}></i>
+          <h3>Нет избранных автомобилей</h3>
+          <a href="/catalog" className="btn-primary">Перейти в каталог</a>
+        </div>
+      ) : (
+        <div className="container">
+          <div className="cars-grid">
+            {cars.map(car => (
+              <div key={car.id} className="car-card hover-lift" onClick={() => window.location.href = `/car/${car.id}`}>
+                <div className="car-image">
+                  {car.image ? <img src={car.image} alt={car.title} /> : <div className="image-placeholder"><i className="fas fa-car"></i></div>}
+                  <span className="car-badge">{car.service}</span>
+                  <div className="auction-badge"><i className="fas fa-gavel"></i>{car.auctionGrade || '4.5'}/5</div>
+                </div>
+                <div className="car-info">
+                  <h3>{car.title}</h3>
+                  <div className="car-details">
+                    <span><i className="fas fa-calendar"></i>{car.year} год</span>
+                    <span><i className="fas fa-road"></i>{car.mileage}</span>
+                    <span><i className="fas fa-gas-pump"></i>{car.engine}</span>
+                  </div>
+                  <div className="car-price-section">
+                    <div className="car-price">
+                      <div className="price-label">Цена в Японии</div>
+                      <div className="price-value">${car.price?.toLocaleString()}</div>
+                    </div>
+                    <button className="btn-primary" onClick={(e) => { e.stopPropagation(); window.location.href = `/car/${car.id}`; }}>Подробнее</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Главный App с авторизацией
 function App() {
   const [user, setUser] = useState(null);
@@ -702,6 +768,11 @@ function App() {
                   <AdminOrdersPage />
                 </ProtectedRoute>
               } />
+              <Route path="/favorites" element={
+  <ProtectedRoute>
+    <FavoritesPage />
+  </ProtectedRoute>
+} />
             </Routes>
           </main>
           <footer className="footer">
@@ -712,7 +783,7 @@ function App() {
               </div>
               <div className="footer-section">
                 <h3>Контакты</h3>
-                <p><i className="fas fa-phone"></i> +7 (XXX) XXX-XX-XX</p>
+                <p><i className="fas fa-phone"></i> +7 (999) 999-99-99</p>
                 <p><i className="fas fa-envelope"></i> info@autojapan.pro</p>
               </div>
               <div className="footer-section">
@@ -725,7 +796,7 @@ function App() {
               </div>
             </div>
             <div className="footer-bottom">
-              <p>© 2024 AutoJapan Pro. Все права защищены.</p>
+              <p>© 2026 AutoJapan Pro. Все права защищены.</p>
             </div>
           </footer>
         </div>

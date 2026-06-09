@@ -453,8 +453,7 @@ function AdminCarsPage() {
       const res = await axios.get(`${API_BASE}/api/cars`); 
       setCars(res.data); 
     } catch (error) { console.error(error); } 
-    finally { setLoading(false); 
-    }
+    finally { setLoading(false); }
   };
 
   const handleDelete = async (id) => {
@@ -505,61 +504,40 @@ function AdminCarsPage() {
 
   if (loading) return <div className="container text-center"><div className="loader"></div><p>Загрузка...</p></div>;
 
-  const containerStyle = { padding: '24px', maxWidth: '1400px', margin: '0 auto', background: '#f1f5f9', minHeight: '100vh' };
-  const headerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' };
-  const titleStyle = { fontSize: '28px', margin: 0, color: '#0f172a' };
-  const addBtnStyle = { background: '#3b82f6', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' };
-  const tableWrapperStyle = { background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' };
-  const tableStyle = { width: '100%', borderCollapse: 'collapse' };
-  const thStyle = { padding: '12px 16px', textAlign: 'left', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: '600' };
-  const tdStyle = { padding: '12px 16px', borderBottom: '1px solid #e2e8f0', color: '#334155' };
-  const thumbStyle = { width: '50px', height: '35px', objectFit: 'cover', borderRadius: '6px' };
-  const actionBtnStyle = { background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', margin: '0 5px' };
-  const modalOverlayStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
-  const modalStyle = { background: 'white', borderRadius: '16px', width: '90%', maxWidth: '800px', maxHeight: '90vh', overflow: 'auto' };
-  const modalHeaderStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #e2e8f0' };
-  const modalBodyStyle = { padding: '24px' };
-  const formGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
-  const inputStyle = { padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', width: '100%' };
-  const fullWidthStyle = { gridColumn: 'span 2' };
-  const buttonGroupStyle = { display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' };
-  const cancelBtnStyle = { background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' };
-  const saveBtnStyle = { background: '#3b82f6', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' };
-
   return (
-    <div style={containerStyle}>
-      <div style={headerStyle}>
-        <h1 style={titleStyle}>🚗 Управление автомобилями</h1>
-        <button style={addBtnStyle} onClick={() => { setEditingCar(null); setFormData({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '', features: '' }); setShowForm(true); }}>
+    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <h1 style={{ fontSize: '28px', margin: 0, background: 'linear-gradient(135deg, #ff6b6b, #ff8e8e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>🚗 Управление автомобилями</h1>
+        <button onClick={() => { setEditingCar(null); setFormData({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '', features: '' }); setShowForm(true); }} style={{ background: '#ff6b6b', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}>
           + Добавить автомобиль
         </button>
       </div>
 
       {showForm && (
-        <div style={modalOverlayStyle}>
-          <div style={modalStyle}>
-            <div style={modalHeaderStyle}>
-              <h3 style={{margin:0}}>{editingCar ? 'Редактировать автомобиль' : 'Новый автомобиль'}</h3>
-              <button onClick={() => setShowForm(false)} style={{background:'none', border:'none', fontSize:'24px', cursor:'pointer'}}>×</button>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#1e1e2e', borderRadius: '16px', width: '90%', maxWidth: '800px', maxHeight: '90vh', overflow: 'auto', border: '1px solid #3a3a4e' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #3a3a4e' }}>
+              <h3 style={{ margin: 0, color: 'white' }}>{editingCar ? 'Редактировать автомобиль' : 'Новый автомобиль'}</h3>
+              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'white' }}>×</button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div style={modalBodyStyle}>
-                <div style={formGridStyle}>
-                  <input type="text" placeholder="Название" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required style={inputStyle} />
-                  <input type="number" placeholder="Цена ($)" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required style={inputStyle} />
-                  <input type="text" placeholder="Сервис" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} required style={inputStyle} />
-                  <input type="number" placeholder="Год" value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} required style={inputStyle} />
-                  <input type="text" placeholder="Пробег" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} required style={inputStyle} />
-                  <input type="text" placeholder="Двигатель" value={formData.engine} onChange={e => setFormData({...formData, engine: e.target.value})} required style={inputStyle} />
-                  <input type="text" placeholder="Оценка" value={formData.auctionGrade} onChange={e => setFormData({...formData, auctionGrade: e.target.value})} style={inputStyle} />
-                  <input type="text" placeholder="Локация" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} style={inputStyle} />
-                  <input type="text" placeholder="Цвет" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} style={inputStyle} />
-                  <input type="text" placeholder="Комплектация (через запятую)" value={formData.features} onChange={e => setFormData({...formData, features: e.target.value})} style={inputStyle} />
-                  <textarea rows="3" placeholder="Описание" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{...inputStyle, ...fullWidthStyle}}></textarea>
+              <div style={{ padding: '24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <input type="text" placeholder="Название" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required style={{ padding: '10px 12px', background: '#2a2a3e', border: '1px solid #3a3a4e', borderRadius: '8px', color: 'white' }} />
+                  <input type="number" placeholder="Цена ($)" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required style={{ padding: '10px 12px', background: '#2a2a3e', border: '1px solid #3a3a4e', borderRadius: '8px', color: 'white' }} />
+                  <input type="text" placeholder="Сервис" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} required style={{ padding: '10px 12px', background: '#2a2a3e', border: '1px solid #3a3a4e', borderRadius: '8px', color: 'white' }} />
+                  <input type="number" placeholder="Год" value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} required style={{ padding: '10px 12px', background: '#2a2a3e', border: '1px solid #3a3a4e', borderRadius: '8px', color: 'white' }} />
+                  <input type="text" placeholder="Пробег" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} required style={{ padding: '10px 12px', background: '#2a2a3e', border: '1px solid #3a3a4e', borderRadius: '8px', color: 'white' }} />
+                  <input type="text" placeholder="Двигатель" value={formData.engine} onChange={e => setFormData({...formData, engine: e.target.value})} required style={{ padding: '10px 12px', background: '#2a2a3e', border: '1px solid #3a3a4e', borderRadius: '8px', color: 'white' }} />
+                  <input type="text" placeholder="Оценка" value={formData.auctionGrade} onChange={e => setFormData({...formData, auctionGrade: e.target.value})} style={{ padding: '10px 12px', background: '#2a2a3e', border: '1px solid #3a3a4e', borderRadius: '8px', color: 'white' }} />
+                  <input type="text" placeholder="Локация" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} style={{ padding: '10px 12px', background: '#2a2a3e', border: '1px solid #3a3a4e', borderRadius: '8px', color: 'white' }} />
+                  <input type="text" placeholder="Цвет" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} style={{ padding: '10px 12px', background: '#2a2a3e', border: '1px solid #3a3a4e', borderRadius: '8px', color: 'white' }} />
+                  <input type="text" placeholder="Комплектация (через запятую)" value={formData.features} onChange={e => setFormData({...formData, features: e.target.value})} style={{ padding: '10px 12px', background: '#2a2a3e', border: '1px solid #3a3a4e', borderRadius: '8px', color: 'white' }} />
+                  <textarea rows="3" placeholder="Описание" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ gridColumn: 'span 2', padding: '10px 12px', background: '#2a2a3e', border: '1px solid #3a3a4e', borderRadius: '8px', color: 'white' }}></textarea>
                 </div>
-                <div style={buttonGroupStyle}>
-                  <button type="button" style={cancelBtnStyle} onClick={() => setShowForm(false)}>Отмена</button>
-                  <button type="submit" style={saveBtnStyle}>Сохранить</button>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #3a3a4e' }}>
+                  <button type="button" onClick={() => setShowForm(false)} style={{ background: '#3a3a4e', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' }}>Отмена</button>
+                  <button type="submit" style={{ background: '#ff6b6b', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' }}>Сохранить</button>
                 </div>
               </div>
             </form>
@@ -567,29 +545,39 @@ function AdminCarsPage() {
         </div>
       )}
 
-      <div style={tableWrapperStyle}>
-        <table style={tableStyle}>
-          <thead>
-            <tr><th style={thStyle}>ID</th><th style={thStyle}>Фото</th><th style={thStyle}>Название</th><th style={thStyle}>Цена</th><th style={thStyle}>Год</th><th style={thStyle}>Сервис</th><th style={thStyle}>Действия</th></tr>
-          </thead>
-          <tbody>
-            {cars.map(car => (
-              <tr key={car.id}>
-                <td style={tdStyle}>{car.id}</td>
-                <td style={tdStyle}>{car.image ? <img src={car.image} style={thumbStyle} /> : '—'}</td>
-                <td style={tdStyle}><strong>{car.title}</strong></td>
-                <td style={tdStyle}>${car.price?.toLocaleString()}</td>
-                <td style={tdStyle}>{car.year}</td>
-                <td style={tdStyle}>{car.service}</td>
-                <td style={tdStyle}>
-                  <button onClick={() => handleEdit(car)} style={actionBtnStyle} title="Редактировать">✏️</button>
-                  <label style={actionBtnStyle} title="Загрузить фото">📷<input type="file" style={{display:'none'}} onChange={e => handleUploadImage(car.id, e.target.files[0])} /></label>
-                  <button onClick={() => handleDelete(car.id)} style={{...actionBtnStyle, color:'#ef4444'}} title="Удалить">🗑️</button>
-                </td>
+      <div style={{ background: '#1e1e2e', borderRadius: '12px', border: '1px solid #3a3a4e', overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#2a2a3e' }}>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#a0a0b0' }}>ID</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#a0a0b0' }}>Фото</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#a0a0b0' }}>Название</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#a0a0b0' }}>Цена</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#a0a0b0' }}>Год</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#a0a0b0' }}>Сервис</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#a0a0b0' }}>Действия</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {cars.map(car => (
+                <tr key={car.id} style={{ borderBottom: '1px solid #2a2a3e' }}>
+                  <td style={{ padding: '12px 16px', color: '#ddd' }}>{car.id}</td>
+                  <td style={{ padding: '12px 16px' }}>{car.image ? <img src={car.image} style={{ width: '50px', height: '35px', objectFit: 'cover', borderRadius: '6px' }} /> : '—'}</td>
+                  <td style={{ padding: '12px 16px', color: '#ddd' }}><strong>{car.title}</strong></td>
+                  <td style={{ padding: '12px 16px', color: '#ddd' }}>${car.price?.toLocaleString()}</td>
+                  <td style={{ padding: '12px 16px', color: '#ddd' }}>{car.year}</td>
+                  <td style={{ padding: '12px 16px', color: '#ddd' }}>{car.service}</td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <button onClick={() => handleEdit(car)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', margin: '0 5px', color: '#fdcb6e' }}>✏️</button>
+                    <label style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', margin: '0 5px', color: '#00b894' }}>📷<input type="file" style={{ display: 'none' }} onChange={e => handleUploadImage(car.id, e.target.files[0])} /></label>
+                    <button onClick={() => handleDelete(car.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', margin: '0 5px', color: '#ff6b6b' }}>🗑️</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

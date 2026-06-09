@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ConsultationForm from '../components/ConsultationForm';
 import axios from 'axios';
 import { useAuth } from '../App';
 import ImageUploader from '../components/ImageUploader';
@@ -11,6 +12,7 @@ const API_BASE = 'http://localhost:3001';
 
 const CarDetailPage = () => {
   const [car, setCar] = useState(null);
+  const [showConsultation, setShowConsultation] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mainImage, setMainImage] = useState('');
   const [showUploader, setShowUploader] = useState(false);
@@ -75,6 +77,7 @@ const CarDetailPage = () => {
     <div className="app fade-in">
       <Toaster position="top-right" />
       
+      {/* Модальное окно доставки */}
       {showDelivery && (
         <DeliveryForm 
           car={car} 
@@ -84,6 +87,11 @@ const CarDetailPage = () => {
             toast.success('Заказ оформлен! Мы свяжемся с вами.');
           }}
         />
+      )}
+
+      {/* Модальное окно консультации */}
+      {showConsultation && (
+        <ConsultationForm onClose={() => setShowConsultation(false)} />
       )}
 
       <nav className="breadcrumbs">
@@ -187,7 +195,9 @@ const CarDetailPage = () => {
               <button className="btn-accent" onClick={() => setShowDelivery(true)}>
                 <i className="fas fa-shopping-cart"></i> Купить сейчас
               </button>
-              <button className="btn-secondary"><i className="fas fa-envelope"></i> Консультация</button>
+              <button className="btn-secondary" onClick={() => setShowConsultation(true)}>
+                <i className="fas fa-envelope"></i> Консультация
+              </button>
             </div>
           </div>
         </div>

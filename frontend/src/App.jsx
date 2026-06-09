@@ -441,18 +441,24 @@ function AdminCarsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState(null);
-  const [formData, setFormData] = useState({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '', features: [] });
+  const [formData, setFormData] = useState({ 
+    title: '', price: '', service: '', year: '', mileage: '', engine: '', 
+    auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '', features: [] 
+  });
 
   useEffect(() => { fetchCars(); }, []);
 
   const fetchCars = async () => {
-    try { const res = await axios.get(`${API_BASE}/api/cars`); setCars(res.data); } 
-    catch (error) { console.error(error); } 
-    finally { setLoading(false); }
+    try { 
+      const res = await axios.get(`${API_BASE}/api/cars`); 
+      setCars(res.data); 
+    } catch (error) { console.error(error); } 
+    finally { setLoading(false); 
+    }
   };
 
   const handleDelete = async (id) => {
-    if (confirm('Удалить?')) { 
+    if (confirm('Удалить автомобиль?')) { 
       await axios.delete(`${API_BASE}/api/cars/${id}`, { withCredentials: true }); 
       fetchCars(); 
     }
@@ -460,83 +466,130 @@ function AdminCarsPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingCar) { await axios.put(`${API_BASE}/api/cars/${editingCar.id}`, formData, { withCredentials: true }); }
-    else { await axios.post(`${API_BASE}/api/cars`, formData, { withCredentials: true }); }
-    setShowForm(false); setEditingCar(null); fetchCars();
+    try {
+      const featuresArray = formData.features.split(',').map(f => f.trim());
+      const payload = { ...formData, features: featuresArray, price: parseInt(formData.price) };
+      if (editingCar) {
+        await axios.put(`${API_BASE}/api/cars/${editingCar.id}`, payload, { withCredentials: true });
+      } else {
+        await axios.post(`${API_BASE}/api/cars`, payload, { withCredentials: true });
+      }
+      setShowForm(false);
+      setEditingCar(null);
+      fetchCars();
+    } catch (error) { alert('Ошибка сохранения'); }
+  };
+
+  const handleEdit = (car) => {
+    setEditingCar(car);
+    setFormData({
+      title: car.title || '', price: car.price || '', service: car.service || '',
+      year: car.year || '', mileage: car.mileage || '', engine: car.engine || '',
+      auctionGrade: car.auction_grade || '4.5', description: car.description || '',
+      location: car.location || 'Tokyo, Japan', color: car.color || '',
+      features: (car.features || []).join(', ')
+    });
+    setShowForm(true);
   };
 
   const handleUploadImage = async (carId, file) => {
-    const formData = new FormData(); formData.append('image', file);
-    await axios.post(`${API_BASE}/api/cars/${carId}/upload-main`, formData, { 
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('image', file);
+    await axios.post(`${API_BASE}/api/cars/${carId}/upload-main`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      withCredentials: true 
+      withCredentials: true
     });
     fetchCars();
   };
 
+  if (loading) return <div className="container text-center"><div className="loader"></div><p>Загрузка...</p></div>;
+
+  const containerStyle = { padding: '24px', maxWidth: '1400px', margin: '0 auto', background: '#f1f5f9', minHeight: '100vh' };
+  const headerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' };
+  const titleStyle = { fontSize: '28px', margin: 0, color: '#0f172a' };
+  const addBtnStyle = { background: '#3b82f6', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' };
+  const tableWrapperStyle = { background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' };
+  const tableStyle = { width: '100%', borderCollapse: 'collapse' };
+  const thStyle = { padding: '12px 16px', textAlign: 'left', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: '600' };
+  const tdStyle = { padding: '12px 16px', borderBottom: '1px solid #e2e8f0', color: '#334155' };
+  const thumbStyle = { width: '50px', height: '35px', objectFit: 'cover', borderRadius: '6px' };
+  const actionBtnStyle = { background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', margin: '0 5px' };
+  const modalOverlayStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
+  const modalStyle = { background: 'white', borderRadius: '16px', width: '90%', maxWidth: '800px', maxHeight: '90vh', overflow: 'auto' };
+  const modalHeaderStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #e2e8f0' };
+  const modalBodyStyle = { padding: '24px' };
+  const formGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
+  const inputStyle = { padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', width: '100%' };
+  const fullWidthStyle = { gridColumn: 'span 2' };
+  const buttonGroupStyle = { display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' };
+  const cancelBtnStyle = { background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' };
+  const saveBtnStyle = { background: '#3b82f6', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' };
+
   return (
-    <div className="app">
-      <div className="container">
-        <div className="admin-header">
-          <h1>Управление автомобилями</h1>
-          <button className="btn-primary" onClick={() => { setEditingCar(null); setFormData({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '' }); setShowForm(true); }}>
-            + Добавить авто
-          </button>
-        </div>
-        {showForm && (
-          <div className="admin-form">
-            <h2>{editingCar ? 'Редактировать' : 'Новый автомобиль'}</h2>
+    <div style={containerStyle}>
+      <div style={headerStyle}>
+        <h1 style={titleStyle}>🚗 Управление автомобилями</h1>
+        <button style={addBtnStyle} onClick={() => { setEditingCar(null); setFormData({ title: '', price: '', service: '', year: '', mileage: '', engine: '', auctionGrade: '4.5', description: '', location: 'Tokyo, Japan', color: '', features: '' }); setShowForm(true); }}>
+          + Добавить автомобиль
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={modalOverlayStyle}>
+          <div style={modalStyle}>
+            <div style={modalHeaderStyle}>
+              <h3 style={{margin:0}}>{editingCar ? 'Редактировать автомобиль' : 'Новый автомобиль'}</h3>
+              <button onClick={() => setShowForm(false)} style={{background:'none', border:'none', fontSize:'24px', cursor:'pointer'}}>×</button>
+            </div>
             <form onSubmit={handleSubmit}>
-              <div className="form-grid">
-                <input placeholder="Название" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
-                <input type="number" placeholder="Цена" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required />
-                <input placeholder="Сервис" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} required />
-                <input type="number" placeholder="Год" value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} required />
-                <input placeholder="Пробег" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} required />
-                <input placeholder="Двигатель" value={formData.engine} onChange={e => setFormData({...formData, engine: e.target.value})} required />
-                <input placeholder="Оценка (0-5)" value={formData.auctionGrade} onChange={e => setFormData({...formData, auctionGrade: e.target.value})} />
-                <textarea placeholder="Описание" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows="3" />
-              </div>
-              <div className="form-buttons">
-                <button type="submit" className="btn-accent">Сохранить</button>
-                <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingCar(null); }}>Отмена</button>
+              <div style={modalBodyStyle}>
+                <div style={formGridStyle}>
+                  <input type="text" placeholder="Название" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required style={inputStyle} />
+                  <input type="number" placeholder="Цена ($)" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required style={inputStyle} />
+                  <input type="text" placeholder="Сервис" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} required style={inputStyle} />
+                  <input type="number" placeholder="Год" value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} required style={inputStyle} />
+                  <input type="text" placeholder="Пробег" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} required style={inputStyle} />
+                  <input type="text" placeholder="Двигатель" value={formData.engine} onChange={e => setFormData({...formData, engine: e.target.value})} required style={inputStyle} />
+                  <input type="text" placeholder="Оценка" value={formData.auctionGrade} onChange={e => setFormData({...formData, auctionGrade: e.target.value})} style={inputStyle} />
+                  <input type="text" placeholder="Локация" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} style={inputStyle} />
+                  <input type="text" placeholder="Цвет" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} style={inputStyle} />
+                  <input type="text" placeholder="Комплектация (через запятую)" value={formData.features} onChange={e => setFormData({...formData, features: e.target.value})} style={inputStyle} />
+                  <textarea rows="3" placeholder="Описание" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{...inputStyle, ...fullWidthStyle}}></textarea>
+                </div>
+                <div style={buttonGroupStyle}>
+                  <button type="button" style={cancelBtnStyle} onClick={() => setShowForm(false)}>Отмена</button>
+                  <button type="submit" style={saveBtnStyle}>Сохранить</button>
+                </div>
               </div>
             </form>
           </div>
-        )}
-        {loading ? <div className="loader"></div> : (
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Фото</th>
-                <th>Название</th>
-                <th>Цена</th>
-                <th>Год</th>
-                <th>Действия</th>
+        </div>
+      )}
+
+      <div style={tableWrapperStyle}>
+        <table style={tableStyle}>
+          <thead>
+            <tr><th style={thStyle}>ID</th><th style={thStyle}>Фото</th><th style={thStyle}>Название</th><th style={thStyle}>Цена</th><th style={thStyle}>Год</th><th style={thStyle}>Сервис</th><th style={thStyle}>Действия</th></tr>
+          </thead>
+          <tbody>
+            {cars.map(car => (
+              <tr key={car.id}>
+                <td style={tdStyle}>{car.id}</td>
+                <td style={tdStyle}>{car.image ? <img src={car.image} style={thumbStyle} /> : '—'}</td>
+                <td style={tdStyle}><strong>{car.title}</strong></td>
+                <td style={tdStyle}>${car.price?.toLocaleString()}</td>
+                <td style={tdStyle}>{car.year}</td>
+                <td style={tdStyle}>{car.service}</td>
+                <td style={tdStyle}>
+                  <button onClick={() => handleEdit(car)} style={actionBtnStyle} title="Редактировать">✏️</button>
+                  <label style={actionBtnStyle} title="Загрузить фото">📷<input type="file" style={{display:'none'}} onChange={e => handleUploadImage(car.id, e.target.files[0])} /></label>
+                  <button onClick={() => handleDelete(car.id)} style={{...actionBtnStyle, color:'#ef4444'}} title="Удалить">🗑️</button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {cars.map(car => (
-                <tr key={car.id}>
-                  <td>{car.id}</td>
-                  <td>
-                    {car.image ? <img src={car.image} style={{width: '50px', height: '35px', objectFit: 'cover'}} /> : <i className="fas fa-car"></i>}
-                  </td>
-                  <td>{car.title}</td>
-                  <td>${car.price}</td>
-                  <td>{car.year}</td>
-                  <td>
-                    <button className="btn-small" onClick={() => { setEditingCar(car); setFormData(car); setShowForm(true); }}>✏️</button>
-                    <button className="btn-small btn-danger" onClick={() => handleDelete(car.id)}>🗑️</button>
-                    <input type="file" accept="image/*" style={{display: 'none'}} id={`upload-${car.id}`} onChange={e => handleUploadImage(car.id, e.target.files[0])} />
-                    <button className="btn-small" onClick={() => document.getElementById(`upload-${car.id}`).click()}>📷</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

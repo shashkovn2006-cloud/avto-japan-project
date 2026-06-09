@@ -304,28 +304,27 @@ function CatalogPage() {
         </div>
         <div className="filters">
           <div className="filter-group">
+            <div className="filter-group">
             <label>Цена от ($)</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
               <input 
                 type="number" 
                 name="minPrice" 
                 value={priceInput.minPrice} 
                 onChange={handlePriceInputChange} 
+                onBlur={applyPriceFilter}
                 placeholder="0" 
               />
-              <button className="btn-small" onClick={applyPriceFilter}>ОК</button>
-            </div>
-          </div>
-          <div className="filter-group">
-            <label>Цена до ($)</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input 
-                type="number" 
-                name="maxPrice" 
-                value={priceInput.maxPrice} 
-                onChange={handlePriceInputChange} 
-                placeholder="100000" 
-              />
+              </div>
+              <div className="filter-group">
+                <label>Цена до ($)</label>
+                <input 
+                  type="number" 
+                  name="maxPrice" 
+                  value={priceInput.maxPrice} 
+                  onChange={handlePriceInputChange} 
+                  onBlur={applyPriceFilter}
+                  placeholder="100000" 
+                />
               <button className="btn-small" onClick={applyPriceFilter}>ОК</button>
             </div>
           </div>
